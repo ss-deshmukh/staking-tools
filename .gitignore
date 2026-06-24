@@ -1,0 +1,7 @@
+prompt.md
+.claude
+node_modules
+.papi/.descriptors-metadata.json
+dist
+*.log
+validator/web/simulator.built.html

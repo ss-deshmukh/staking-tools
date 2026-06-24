@@ -1,0 +1,351 @@
+{
+  "chain": {
+    "schemaVersion": 1,
+    "chainKey": "wah",
+    "chainName": "Westend Asset Hub",
+    "genesisHash": "0x67f9723393ef76214df0118c34bbbd3dbebc8ed46a10973a8c969d48fe7598c9",
+    "tokenSymbol": "WND",
+    "tokenDecimals": 12,
+    "ss58Prefix": 42
+  },
+  "era": 10685,
+  "capturedAtMs": "1782080160000",
+  "activeEraStartMs": "1782075396001",
+  "eraDurationMs": "21600000",
+  "sessionsPerEra": 6,
+  "historyDepth": 84,
+  "totalStakerReward": "128244664619345",
+  "validatorIncentiveBudget": "91360137184568",
+  "totalRewardPoints": 510100,
+  "totalStake": "2648497782146117125",
+  "sumIncentiveWeight": "3853600780",
+  "incentiveParams": {
+    "optimumSelfStake": "30000000000000000",
+    "hardCapSelfStake": "100000000000000000",
+    "selfStakeSlopeFactor": {
+      "raw": 500000000,
+      "fraction": 0.5
+    }
+  },
+  "dapParams": {
+    "budgetAllocation": {
+      "buffer": {
+        "raw": 226000000,
+        "fraction": 0.226
+      },
+      "staker_rewards": {
+        "raw": 452000000,
+        "fraction": 0.452
+      },
+      "validator_incentive": {
+        "raw": 322000000,
+        "fraction": 0.322
+      }
+    },
+    "issuanceCadenceMs": "60000",
+    "maxElapsedPerDripMs": "600000",
+    "lastIssuanceTimestampMs": "1782080136000"
+  },
+  "validators": [
+    {
+      "address": "5GTD7ZeD823BjpmZBCSzBQp7cvHR1Gunq7oDkurZr9zUev2n",
+      "totalStake": "204545928958508787",
+      "ownStake": "106374888069024832",
+      "nominatorCount": 57,
+      "pageCount": 1,
+      "commission": {
+        "raw": 1,
+        "fraction": 1e-9
+      },
+      "blocked": false,
+      "rewardPoints": 29940,
+      "incentiveWeight": "217944947",
+      "nominators": []
+    },
+    {
+      "address": "5ENXqYmc5m6VLMm5i1mun832xAv2Qm9t3M4PWAFvvyCJLNoR",
+      "totalStake": "174319489143702318",
+      "ownStake": "79857562652423226",
+      "nominatorCount": 78,
+      "pageCount": 2,
+      "commission": {
+        "raw": 10000000,
+        "fraction": 0.01
+      },
+      "blocked": false,
+      "rewardPoints": 25380,
+      "incentiveWeight": "206068897",
+      "nominators": []
+    },
+    {
+      "address": "5E2CYS4D6KdD1nDh5d7hTtss3TR8etx4i92ozipJt5QtR9KY",
+      "totalStake": "157052950858426620",
+      "ownStake": "64465444671711877",
+      "nominatorCount": 63,
+      "pageCount": 1,
+      "commission": {
+        "raw": 10000000,
+        "fraction": 0.01
+      },
+      "blocked": false,
+      "rewardPoints": 19540,
+      "incentiveWeight": "196510460",
+      "nominators": []
+    },
+    {
+      "address": "5DJcEbkNxsnNwHGrseg7cgbfUG8eiKzpuZqgSph5HqHrjgf6",
+      "totalStake": "151522193575637755",
+      "ownStake": "64292182313343072",
+      "nominatorCount": 57,
+      "pageCount": 1,
+      "commission": {
+        "raw": 10000000,
+        "fraction": 0.01
+      },
+      "blocked": false,
+      "rewardPoints": 28620,
+      "incentiveWeight": "196400217",
+      "nominators": []
+    },
+    {
+      "address": "5FUJHYEzKpVJfNbtXmR9HFqmcSEz6ak7ZUhBECz7GpsFkSYR",
+      "totalStake": "134893819526598742",
+      "ownStake": "43203363332410012",
+      "nominatorCount": 104,
+      "pageCount": 2,
+      "commission": {
+        "raw": 10000000,
+        "fraction": 0.01
+      },
+      "blocked": false,
+      "rewardPoints": 31660,
+      "incentiveWeight": "182485179",
+      "nominators": []
+    },
+    {
+      "address": "5G1ojzh47Yt8KoYhuAjXpHcazvsoCXe3G8LZchKDvumozJJJ",
+      "totalStake": "133510103793645144",
+      "ownStake": "47425505704607783",
+      "nominatorCount": 98,
+      "pageCount": 2,
+      "commission": {
+        "raw": 220000000,
+        "fraction": 0.22
+      },
+      "blocked": false,
+      "rewardPoints": 17520,
+      "incentiveWeight": "185354731",
+      "nominators": []
+    },
+    {
+      "address": "5H9ayWwwQoPFwFe7hcHussuro75SmRcQHacg9HEYb21oasMn",
+      "totalStake": "128560427783612593",
+      "ownStake": "128534891465158753",
+      "nominatorCount": 4,
+      "pageCount": 1,
+      "commission": {
+        "raw": 10000000,
+        "fraction": 0.01
+      },
+      "blocked": false,
+      "rewardPoints": 24180,
+      "incentiveWeight": "217944947",
+      "nominators": []
+    },
+    {
+      "address": "5FNL7mJsaxfPeRku7eY93uMBw7xkaAbBX7c6ZNBdwGmReDQC",
+      "totalStake": "128357901764738902",
+      "ownStake": "128357828812767365",
+      "nominatorCount": 1,
+      "pageCount": 1,
+      "commission": {
+        "raw": 10000000,
+        "fraction": 0.01
+      },
+      "blocked": false,
+      "rewardPoints": 22040,
+      "incentiveWeight": "217944947",
+      "nominators": []
+    },
+    {
+      "address": "5GYaYNVq6e855t5hVCyk4Wuqssaf6ADTrvdPZ3QXyHvFXTip",
+      "totalStake": "128162411827511890",
+      "ownStake": "42068708184323122",
+      "nominatorCount": 140,
+      "pageCount": 3,
+      "commission": {
+        "raw": 10000000,
+        "fraction": 0.01
+      },
+      "blocked": false,
+      "rewardPoints": 19540,
+      "incentiveWeight": "181706293",
+      "nominators": []
+    },
+    {
+      "address": "5FnxSkypLBNFxc1XcjgvL6rHKCguMu4vTSee9Z5rJ5WVqdTX",
+      "totalStake": "127760132654315798",
+      "ownStake": "127720265984917953",
+      "nominatorCount": 1,
+      "pageCount": 1,
+      "commission": {
+        "raw": 10000000,
+        "fraction": 0.01
+      },
+      "blocked": false,
+      "rewardPoints": 24660,
+      "incentiveWeight": "217944947",
+      "nominators": []
+    },
+    {
+      "address": "5F6UJyEWSdTcchyZpKTi7g5EiVWzwjVcnwcZjv1mmN3AXN2T",
+      "totalStake": "127331132886117362",
+      "ownStake": "127305823685043403",
+      "nominatorCount": 2,
+      "pageCount": 1,
+      "commission": {
+        "raw": 10000000,
+        "fraction": 0.01
+      },
+      "blocked": false,
+      "rewardPoints": 26720,
+      "incentiveWeight": "217944947",
+      "nominators": []
+    },
+    {
+      "address": "5FWG1xiaSSxR4kCTFo3nVGdz3T2fkajUfEtj4qEFHwnq4iVx",
+      "totalStake": "127297613895235545",
+      "ownStake": "127297419356644779",
+      "nominatorCount": 1,
+      "pageCount": 1,
+      "commission": {
+        "raw": 10000000,
+        "fraction": 0.01
+      },
+      "blocked": false,
+      "rewardPoints": 28080,
+      "incentiveWeight": "217944947",
+      "nominators": []
+    },
+    {
+      "address": "5Ft3J6iqSQPWX2S9jERXcMpevt8JDUPWjec5uGierfVGXisE",
+      "totalStake": "125673994218032582",
+      "ownStake": "43369783017931962",
+      "nominatorCount": 76,
+      "pageCount": 2,
+      "commission": {
+        "raw": 10000000,
+        "fraction": 0.01
+      },
+      "blocked": false,
+      "rewardPoints": 24580,
+      "incentiveWeight": "182599139",
+      "nominators": []
+    },
+    {
+      "address": "5CFPqoTU7fiUp1JJNbfcY2z6yavEBKDPQGg4SGeG3Fm7vCsg",
+      "totalStake": "122090376288289429",
+      "ownStake": "41776410714410496",
+      "nominatorCount": 70,
+      "pageCount": 2,
+      "commission": {
+        "raw": 10000000,
+        "fraction": 0.01
+      },
+      "blocked": false,
+      "rewardPoints": 22480,
+      "incentiveWeight": "181505103",
+      "nominators": []
+    },
+    {
+      "address": "5HYYWyhyUQ7Ae11f8fCid58bhJ7ikLHM9bU8A6Ynwoc3dStR",
+      "totalStake": "119157116168992302",
+      "ownStake": "40676564473650736",
+      "nominatorCount": 67,
+      "pageCount": 2,
+      "commission": {
+        "raw": 120000000,
+        "fraction": 0.12
+      },
+      "blocked": false,
+      "rewardPoints": 20560,
+      "incentiveWeight": "180746068",
+      "nominators": []
+    },
+    {
+      "address": "5FEjMPSs4X2XNes7QRH6eLmaYCskHdnYM8Zv2kKrBrhnzGbR",
+      "totalStake": "116629048651934522",
+      "ownStake": "40642145228165506",
+      "nominatorCount": 80,
+      "pageCount": 2,
+      "commission": {
+        "raw": 10000000,
+        "fraction": 0.01
+      },
+      "blocked": false,
+      "rewardPoints": 28040,
+      "incentiveWeight": "180722262",
+      "nominators": []
+    },
+    {
+      "address": "5C556QTtg1bJ43GDSgeowa3Ark6aeSHGTac1b2rKSXtgmSmW",
+      "totalStake": "114393823534213451",
+      "ownStake": "40916948885323549",
+      "nominatorCount": 68,
+      "pageCount": 2,
+      "commission": {
+        "raw": 10000000,
+        "fraction": 0.01
+      },
+      "blocked": false,
+      "rewardPoints": 26420,
+      "incentiveWeight": "180912236",
+      "nominators": []
+    },
+    {
+      "address": "5FZoQhgUCmqBxnkHX7jCqThScS2xQWiwiF61msg63CFL3Y8f",
+      "totalStake": "111244120245872513",
+      "ownStake": "30601949914358544",
+      "nominatorCount": 85,
+      "pageCount": 2,
+      "commission": {
+        "raw": 1,
+        "fraction": 1e-9
+      },
+      "blocked": false,
+      "rewardPoints": 30820,
+      "incentiveWeight": "173638957",
+      "nominators": []
+    },
+    {
+      "address": "5CFPcUJgYgWryPaV1aYjSbTpbTLu42V32Ytw1L9rfoMAsfGh",
+      "totalStake": "109357713051222004",
+      "ownStake": "29546699273361023",
+      "nominatorCount": 142,
+      "pageCount": 3,
+      "commission": {
+        "raw": 1,
+        "fraction": 1e-9
+      },
+      "blocked": false,
+      "rewardPoints": 33480,
+      "incentiveWeight": "171891533",
+      "nominators": []
+    },
+    {
+      "address": "5Ek5JCnrRsyUGYNRaEvkufG1i1EUxEE9cytuWBBjA9oNZVsf",
+      "totalStake": "106637483319508866",
+      "ownStake": "21138258841591046",
+      "nominatorCount": 91,
+      "pageCount": 2,
+      "commission": {
+        "raw": 10000000,
+        "fraction": 0.01
+      },
+      "blocked": false,
+      "rewardPoints": 25840,
+      "incentiveWeight": "145390023",
+      "nominators": []
+    }
+  ]
+}

@@ -1,0 +1,436 @@
+<title>Validator APY calculator</title>
+<style>
+  :root {
+    --ground: #0E1116;
+    --panel: #161B22;
+    --panel-2: #1C232D;
+    --line: #283039;
+    --text: #E6EDF3;
+    --muted: #8B97A6;
+    --faint: #5A6573;
+    --accent: #E6007A;     /* Polkadot magenta */
+    --accent-2: #2DD4BF;   /* teal — incentive */
+    --warn: #E3B341;
+    --mono: ui-monospace, "SF Mono", "JetBrains Mono", "Cascadia Code", Menlo, Consolas, monospace;
+    --sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background:
+      radial-gradient(1100px 520px at 85% -15%, rgba(230,0,122,0.08), transparent 60%),
+      var(--ground);
+    color: var(--text);
+    font-family: var(--sans);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap { max-width: 860px; margin: 0 auto; padding: clamp(20px, 4vw, 44px) clamp(16px, 4vw, 36px) 60px; }
+
+  /* --- Masthead --- */
+  header.masthead { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 26px; }
+  .brand { display: flex; align-items: center; gap: 11px; }
+  .brand .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 14px var(--accent); }
+  h1 { font-family: var(--mono); font-size: clamp(17px, 2.2vw, 21px); font-weight: 600; letter-spacing: -0.01em; margin: 0; }
+
+  /* --- Core: curve + APY --- */
+  .core { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; align-items: stretch; }
+  @media (max-width: 720px) { .core { grid-template-columns: 1fr; } }
+
+  .curve-card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px 14px 6px; position: relative; overflow: hidden; }
+  .curve-head { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--faint); margin-bottom: 4px; }
+  canvas#curve { width: 100%; height: auto; display: block; }
+
+  .apy-card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 20px 22px; display: flex; flex-direction: column; justify-content: center; position: relative; }
+  .apy-card::before { content: ""; position: absolute; left: 0; top: 16px; bottom: 16px; width: 3px; border-radius: 3px; background: var(--accent); }
+  .apy-card .k { font-family: var(--mono); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+  .apy-card .v { font-family: var(--mono); font-size: clamp(44px, 8vw, 64px); font-weight: 600; letter-spacing: -0.03em; line-height: 1.0; margin: 6px 0 4px; }
+  .apy-card .v .pct { font-size: 0.42em; color: var(--muted); font-weight: 400; margin-left: 2px; }
+  .apy-card .sub { font-size: 12px; color: var(--faint); }
+
+  /* --- Primary control --- */
+  .own-control { margin-top: 22px; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px; }
+  .field label { display: flex; justify-content: space-between; align-items: baseline; font-size: 13px; color: var(--text); margin-bottom: 11px; }
+  .field label .hint { font-family: var(--mono); font-size: 11px; color: var(--faint); font-weight: 400; }
+  .field .row { display: flex; align-items: center; gap: 12px; }
+  input[type="range"] { -webkit-appearance: none; appearance: none; flex: 1; height: 4px; border-radius: 3px; background: var(--line); outline: none; }
+  input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 17px; height: 17px; border-radius: 50%; background: var(--accent); cursor: pointer; border: 2px solid var(--ground); box-shadow: 0 0 0 1px var(--accent); }
+  input[type="range"]::-moz-range-thumb { width: 17px; height: 17px; border-radius: 50%; background: var(--accent); cursor: pointer; border: 2px solid var(--ground); }
+  input[type="range"]:focus-visible { box-shadow: 0 0 0 2px var(--accent-2); }
+  input[type="number"] { width: 130px; font-family: var(--mono); font-size: 13px; background: var(--panel-2); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 8px 9px; text-align: right; }
+  input[type="number"]:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 1px; border-color: transparent; }
+  .field .unit { font-family: var(--mono); font-size: 11.5px; color: var(--faint); min-width: 40px; }
+
+  /* --- Expandable --- */
+  details.exp { margin-top: 16px; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+  details.exp > summary { font-family: var(--mono); font-size: 11.5px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); padding: 15px 20px; cursor: pointer; list-style: none; display: flex; align-items: center; justify-content: space-between; }
+  details.exp > summary::-webkit-details-marker { display: none; }
+  details.exp > summary:focus-visible { outline: 2px solid var(--accent-2); outline-offset: -2px; }
+  details.exp > summary .chev { transition: transform 0.18s; color: var(--faint); font-size: 13px; }
+  details.exp[open] > summary .chev { transform: rotate(90deg); }
+  details.exp > summary:hover { color: var(--text); }
+  .exp-body { padding: 4px 20px 20px; border-top: 1px solid var(--line); }
+
+  .ctrl-grid { display: grid; grid-template-columns: 1fr; gap: 20px; padding-top: 16px; }
+  .row-stat { display: flex; justify-content: space-between; align-items: baseline; font-family: var(--mono); font-size: 13px; padding: 9px 0; border-top: 1px dashed var(--line); }
+  .row-stat:first-child { border-top: 0; }
+  .row-stat .k { color: var(--muted); }
+  .row-stat .v { color: var(--text); }
+  .row-stat .v.teal { color: var(--accent-2); }
+
+  table { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 12.5px; margin-top: 8px; }
+  td { padding: 10px 0; border-bottom: 1px solid var(--line); }
+  tr:last-child td { border-bottom: 0; }
+  td.label { color: var(--muted); }
+  td.val { text-align: right; color: var(--text); }
+  tr.stream-staker td.label::before { content: "■ "; color: var(--accent); }
+  tr.stream-incentive td.label::before { content: "■ "; color: var(--accent-2); }
+  tr.total td { font-weight: 600; color: var(--text); }
+  .scroll-x { overflow-x: auto; }
+</style>
+
+<div class="wrap">
+  <header class="masthead">
+    <div class="brand">
+      <span class="dot" aria-hidden="true"></span>
+      <h1>Polkadot validator APY calculator</h1>
+    </div>
+  </header>
+
+  <section class="core">
+    <div class="curve-card">
+      <div class="curve-head">Self-stake incentive curve</div>
+      <canvas id="curve" width="520" height="220" role="img"
+        aria-label="Incentive weight vs self-stake, with your position marked"></canvas>
+    </div>
+    <div class="apy-card">
+      <div class="k">Your validator APY · on own stake</div>
+      <div class="v"><span id="valApy">—</span><span class="pct">%</span></div>
+      <div class="sub">staker pool share + self-stake incentive</div>
+    </div>
+  </section>
+
+  <div class="own-control">
+    <div class="field">
+      <label for="own">Your self-stake <span class="hint" id="ownHint"></span></label>
+      <div class="row">
+        <input type="range" id="ownRange" min="0" step="1" />
+        <input type="number" id="own" min="0" step="100" />
+        <span class="unit" id="unit1"></span>
+      </div>
+    </div>
+  </div>
+
+  <details class="exp" id="assumptionsExp">
+    <summary>Assumptions <span class="chev">›</span></summary>
+    <div class="exp-body">
+      <div class="ctrl-grid">
+        <div class="field">
+          <label for="nom">Nominator stake backing you <span class="hint">affects your share of the staker pool</span></label>
+          <div class="row">
+            <input type="range" id="nomRange" min="0" step="1" />
+            <input type="number" id="nom" min="0" step="1000" />
+            <span class="unit" id="unit2"></span>
+          </div>
+        </div>
+        <div class="field">
+          <label for="pts">Relative performance <span class="hint">era reward points vs. average</span></label>
+          <div class="row">
+            <input type="range" id="ptsRange" min="0" max="200" step="5" />
+            <input type="number" id="pts" min="0" max="500" step="5" />
+            <span class="unit">%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </details>
+
+  <details class="exp" id="paramsExp">
+    <summary>Chain parameters (Ref 1909) <span class="chev">›</span></summary>
+    <div class="exp-body">
+      <div class="row-stat"><span class="k">Staker rewards budget</span><span class="v" id="pStaker">—</span></div>
+      <div class="row-stat"><span class="k">Validator incentive budget</span><span class="v teal" id="pIncentive">—</span></div>
+      <div class="row-stat"><span class="k">Buffer</span><span class="v" id="pBuffer">—</span></div>
+      <div class="row-stat"><span class="k">Target self-stake</span><span class="v" id="pOptimum">—</span></div>
+      <div class="row-stat"><span class="k">Hard cap self-stake</span><span class="v" id="pCap">—</span></div>
+      <div class="row-stat"><span class="k">Slope factor (k)</span><span class="v" id="pSlope">—</span></div>
+      <div class="row-stat"><span class="k">Inflation / era</span><span class="v" id="pInflation">—</span></div>
+      <div class="row-stat"><span class="k">Staker pool / era</span><span class="v" id="pStakerPot">—</span></div>
+      <div class="row-stat"><span class="k">Incentive pot / era</span><span class="v teal" id="pIncentivePot">—</span></div>
+    </div>
+  </details>
+
+  <details class="exp" id="breakdownExp">
+    <summary>Per-era reward breakdown <span class="chev">›</span></summary>
+    <div class="exp-body">
+      <div class="scroll-x"><table><tbody id="breakdownBody"></tbody></table></div>
+    </div>
+  </details>
+</div>
+
+<script id="data" type="application/json">__DATA__</script>
+<script>
+(() => {
+  "use strict";
+  const CHAINS = JSON.parse(document.getElementById("data").textContent);
+  const byKey = Object.fromEntries(CHAINS.map(c => [c.chainKey, c]));
+  const PERBILL = 1_000_000_000n;
+  const ONE_YEAR_MS = 365n * 24n * 60n * 60n * 1000n;
+
+  // Referendum 1909 parameters (governance-set; same as Westend's live curve).
+  // Token counts; scaled to each chain's decimals at use.
+  const REF = {
+    stakerPct: 45.2, incentivePct: 22.6, bufferPct: 32.2,
+    optimumTok: 30000, capTok: 100000, slopeK: 0.5,
+  };
+
+  // ---- math (ported from src/apy/calculator.ts; BigInt-exact) ----
+  function isqrt(n) {
+    if (n < 2n) return n;
+    let x = n, y = (x + 1n) / 2n;
+    while (y < x) { x = y; y = (x + n / x) / 2n; }
+    return x;
+  }
+  function incentiveWeight(self, optimum, cap, slopeRaw) {
+    if (self === 0n) return 0n;
+    if (optimum === 0n && cap === 0n) return 0n;
+    if (self <= optimum) return isqrt(self);
+    const k2 = slopeRaw * slopeRaw;
+    const den = PERBILL * PERBILL;
+    const excess = (self <= cap ? self : cap) - optimum;
+    return isqrt(optimum + (k2 * excess) / den);
+  }
+  const mulRat = (v, a, b) => (b === 0n ? 0n : (v * a) / b);
+  function ratio(num, den) {
+    if (den === 0n) return 0;
+    const s = 1_000_000_000n;
+    return Number((num * s) / den) / Number(s);
+  }
+
+  // ---- state ----
+  let chainKey = "pah";
+  let decimals = 10;
+  const unit = () => 10n ** BigInt(decimals);
+  function toPlanck(tokens) {
+    const [i, f = ""] = String(tokens).split(".");
+    const fp = (f + "0".repeat(decimals)).slice(0, decimals);
+    return BigInt(i || "0") * unit() + BigInt(fp || "0");
+  }
+  const toTokens = (planck) => Number(planck) / Number(unit());
+
+  const els = {};
+  ["valApy","ownHint","unit1","unit2","own","ownRange","nom","nomRange","pts","ptsRange",
+   "pStaker","pIncentive","pBuffer","pOptimum","pCap","pSlope","pInflation","pStakerPot","pIncentivePot",
+   "breakdownBody","curve"]
+    .forEach(id => els[id] = document.getElementById(id));
+
+  // ---- Ref-1909 scenario for a chain ----
+  // Total DAP reward issuance is fixed; the split only redistributes it. Recover
+  // "issuance per 1%" from the snapshot's staker pot + its current staker %, then
+  // resize both pots under the Ref-1909 split. The incentive denominator is the
+  // EXACT sum of w(ownStake) over every validator in the era under the Ref curve
+  // — computed here even though the chain may not store weights yet.
+  function buildScenario(c) {
+    const stakerPctRaw = c.budgetAllocation.staker_rewards || 0;
+    const incPctRaw = c.budgetAllocation.validator_incentive || 0;
+    let per1 = 0;
+    if (stakerPctRaw > 0) per1 = Number(c.totalStakerReward) / (stakerPctRaw / 1e9 * 100);
+    else if (incPctRaw > 0) per1 = Number(c.validatorIncentiveBudget) / (incPctRaw / 1e9 * 100);
+
+    const optimum = toPlanck(REF.optimumTok);
+    const cap = toPlanck(REF.capTok);
+    const slopeRaw = BigInt(Math.round(REF.slopeK * 1e9));
+
+    // Exact denominator: apply the Ref curve to every real validator's own-stake.
+    let sumAll = 0n;
+    for (const own of c.ownStakes) {
+      sumAll += incentiveWeight(BigInt(own), optimum, cap, slopeRaw);
+    }
+
+    return {
+      per1,
+      stakerPot: BigInt(Math.max(0, Math.round(per1 * REF.stakerPct))),
+      incentivePot: BigInt(Math.max(0, Math.round(per1 * REF.incentivePct))),
+      optimum, cap, slopeRaw,
+      sumAll, // sum over the existing set
+    };
+  }
+
+  // ---- compute (commission 0; max commission is 0) ----
+  function compute(c, sc, ownStake, nomStake, pointsFrac) {
+    const totalExposure = ownStake + nomStake;
+    const totalPoints = BigInt(c.totalRewardPoints);
+    const avgPoints = c.validatorCount > 0 ? totalPoints / BigInt(c.validatorCount + 1) : 0n;
+    const points = BigInt(Math.round(Number(avgPoints) * pointsFrac));
+
+    const valTotalStaker = mulRat(sc.stakerPot, points, totalPoints);
+    const valStaking = mulRat(valTotalStaker, ownStake, totalExposure || 1n);
+    const nominator = valTotalStaker - valStaking;
+
+    const w = incentiveWeight(ownStake, sc.optimum, sc.cap, sc.slopeRaw);
+    // Denominator = sum over the existing set + this validator's own weight.
+    const sumW = sc.sumAll + w;
+    const incentive = mulRat(sc.incentivePot, w, sumW);
+
+    const valEraTotal = valStaking + incentive;
+    const epy = Number(ONE_YEAR_MS) / Number(BigInt(c.eraDurationMs));
+    const annualize = (p) => BigInt(Math.round(Number(p) * epy));
+
+    return {
+      weight: w, valTotalStaker, valStaking, nominator, incentive, valEraTotal, epy,
+      valApy: ratio(annualize(valEraTotal), ownStake || 1n),
+      nomApy: ratio(annualize(nominator), nomStake || 1n),
+      incShareOfVal: valEraTotal === 0n ? 0 : ratio(incentive, valEraTotal),
+      valAnnual: annualize(valEraTotal),
+    };
+  }
+
+  const pct = (f) => (f * 100).toFixed(2);
+  function fmtTok(planck) {
+    const t = toTokens(planck);
+    return t.toLocaleString(undefined, { maximumFractionDigits: t < 1 ? 4 : 2 });
+  }
+
+  function render() {
+    const c = byKey[chainKey];
+    const sym = c.tokenSymbol;
+    const sc = buildScenario(c);
+    const own = toPlanck(els.own.value || "0");
+    const nom = toPlanck(els.nom.value || "0");
+    const pointsFrac = parseFloat(els.pts.value || "0") / 100;
+    const r = compute(c, sc, own, nom, pointsFrac);
+
+    els.valApy.textContent = pct(r.valApy);
+
+    // Chain parameters panel (read-only).
+    els.pStaker.textContent = REF.stakerPct + "%";
+    els.pIncentive.textContent = REF.incentivePct + "%";
+    els.pBuffer.textContent = REF.bufferPct + "%";
+    els.pOptimum.textContent = REF.optimumTok.toLocaleString() + " " + sym;
+    els.pCap.textContent = REF.capTok.toLocaleString() + " " + sym;
+    els.pSlope.textContent = REF.slopeK;
+    els.pInflation.textContent = fmtTok(BigInt(Math.round(sc.per1 * 100))) + " " + sym;
+    els.pStakerPot.textContent = fmtTok(sc.stakerPot) + " " + sym;
+    els.pIncentivePot.textContent = fmtTok(sc.incentivePot) + " " + sym;
+
+    const rows = [
+      ["stream-staker", "Your share of the staker pool", fmtTok(r.valStaking) + " " + sym],
+      ["stream-incentive", "Self-stake incentive", fmtTok(r.incentive) + " " + sym],
+      ["total", "You keep / era", fmtTok(r.valEraTotal) + " " + sym],
+      ["", "Annualized (× " + r.epy.toFixed(0) + ")", fmtTok(r.valAnnual) + " " + sym],
+    ];
+    els.breakdownBody.innerHTML = rows.map(([cls, k, v]) =>
+      `<tr class="${cls}"><td class="label">${k}</td><td class="val">${v}</td></tr>`).join("");
+
+    drawCurve(c, sc, own);
+  }
+
+  function drawCurve(c, sc, ownStake) {
+    const canvas = els.curve;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const cssW = canvas.clientWidth || 520, cssH = 220;
+    canvas.width = cssW * dpr; canvas.height = cssH * dpr;
+    const ctx = canvas.getContext("2d");
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, cssW, cssH);
+
+    const pad = { l: 10, r: 10, t: 12, b: 24 };
+    const W = cssW - pad.l - pad.r, H = cssH - pad.t - pad.b;
+    const { optimum, cap, slopeRaw: slope } = sc;
+    const xMax = Number(cap) * 1.5;
+    const styleUnit = Number(unit());
+    const xToPx = (x) => pad.l + (x / xMax) * W;
+    const wMax = Number(incentiveWeight(BigInt(Math.round(xMax)), optimum, cap, slope)) || 1;
+    const yToPx = (w) => pad.t + H - (w / wMax) * H;
+
+    const drawVLine = (xVal, color, label) => {
+      const px = xToPx(xVal);
+      ctx.strokeStyle = color; ctx.setLineDash([3, 4]); ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(px, pad.t); ctx.lineTo(px, pad.t + H); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = color; ctx.font = "9px ui-monospace, monospace";
+      ctx.fillText(label, px + 4, pad.t + 10);
+    };
+    drawVLine(Number(optimum), "rgba(227,179,65,0.55)", "target");
+    drawVLine(Number(cap), "rgba(139,151,166,0.5)", "cap");
+
+    const tracePath = () => {
+      ctx.beginPath();
+      const N = 200;
+      for (let i = 0; i <= N; i++) {
+        const x = (i / N) * xMax;
+        const w = Number(incentiveWeight(BigInt(Math.round(x)), optimum, cap, slope));
+        const px = xToPx(x), py = yToPx(w);
+        i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+      }
+    };
+    tracePath();
+    ctx.lineTo(xToPx(xMax), pad.t + H); ctx.lineTo(pad.l, pad.t + H); ctx.closePath();
+    const grad = ctx.createLinearGradient(0, pad.t, 0, pad.t + H);
+    grad.addColorStop(0, "rgba(45,212,191,0.20)"); grad.addColorStop(1, "rgba(45,212,191,0.01)");
+    ctx.fillStyle = grad; ctx.fill();
+    tracePath();
+    ctx.strokeStyle = "#2DD4BF"; ctx.lineWidth = 2; ctx.stroke();
+
+    const ownNum = Number(ownStake);
+    if (ownNum <= xMax) {
+      const w = Number(incentiveWeight(ownStake, optimum, cap, slope));
+      const px = xToPx(ownNum), py = yToPx(w);
+      ctx.strokeStyle = "rgba(230,0,122,0.4)"; ctx.lineWidth = 1; ctx.setLineDash([2, 3]);
+      ctx.beginPath(); ctx.moveTo(px, pad.t + H); ctx.lineTo(px, py); ctx.stroke(); ctx.setLineDash([]);
+      ctx.beginPath(); ctx.arc(px, py, 5, 0, Math.PI * 2);
+      ctx.fillStyle = "#E6007A"; ctx.fill();
+      ctx.strokeStyle = "#0E1116"; ctx.lineWidth = 2; ctx.stroke();
+      ctx.fillStyle = "#E6EDF3"; ctx.font = "600 10px ui-monospace, monospace";
+      const lbl = fmtTok(ownStake) + " " + c.tokenSymbol;
+      const lw = ctx.measureText(lbl).width;
+      ctx.fillText(lbl, Math.min(px + 9, cssW - lw - 4), Math.max(py - 8, pad.t + 11));
+    }
+
+    ctx.fillStyle = "#5A6573"; ctx.font = "9px ui-monospace, monospace";
+    for (let f = 0; f <= 1.5; f += 0.5) {
+      const x = Number(cap) * f;
+      ctx.fillText(Math.round(x / styleUnit).toLocaleString(), xToPx(x), pad.t + H + 14);
+    }
+  }
+
+  function bindPair(numId, rangeId, max) {
+    const num = els[numId], range = els[rangeId];
+    range.max = max;
+    range.addEventListener("input", () => { num.value = range.value; render(); });
+    num.addEventListener("input", () => { range.value = Math.min(Number(num.value) || 0, max); render(); });
+  }
+
+  function init() {
+    const c = byKey[chainKey];
+    decimals = c.tokenDecimals;
+    const sym = c.tokenSymbol;
+    els.unit1.textContent = sym; els.unit2.textContent = sym;
+    els.ownHint.textContent = `chain target ${REF.optimumTok.toLocaleString()} · cap ${REF.capTok.toLocaleString()} ${sym}`;
+
+    const ownMax = Math.round(REF.capTok * 1.5);
+    bindPair("own", "ownRange", ownMax);
+    const nomMax = Math.round(toTokens(BigInt(c.totalStake)) / c.validatorCount * 2);
+    bindPair("nom", "nomRange", nomMax);
+
+    setInputs(REF.optimumTok, Math.round(nomMax / 2), 100);
+  }
+
+  function setInputs(ownTok, nomTok, ptsPct) {
+    els.own.value = Math.round(ownTok);
+    els.ownRange.value = Math.min(Math.round(ownTok), Number(els.ownRange.max));
+    els.nom.value = Math.round(nomTok);
+    els.nomRange.value = Math.min(Math.round(nomTok), Number(els.nomRange.max));
+    els.pts.value = ptsPct; els.ptsRange.value = Math.min(ptsPct, 200);
+    render();
+  }
+
+  bindPair("pts", "ptsRange", 200);
+  window.addEventListener("resize", render);
+
+  init();
+})();
+</script>
