@@ -5,7 +5,7 @@
     "subtitle": "Drag the knobs governance can actually turn. Everything else is computed.",
     "today_date": "2026-05-10",
     "dot_price_usd": 1.33,
-    "dot_price_stops": [1.33, 5, 10, 50, 100],
+    "dot_price_stops": [0.8, 1.33, 5, 10, 50, 100],
     "assumed_leak_pct": 50
   },
   "issuance_curve": {

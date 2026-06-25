@@ -32,10 +32,7 @@
     </div>
 
     <div class="panel">
-      <div class="panel-head">
-        <h2>Validators</h2>
-        <button class="info-btn" data-info="Active validator set size. Today 600, target ~300.">i</button>
-      </div>
+      <h2>Validators</h2>
       <div id="validator-count-input"></div>
     </div>
 
@@ -95,6 +92,7 @@ function initState() {
   STATE.dap_split = {};
   CFG.inputs.dap_split.items.forEach(it => { STATE.dap_split[it.id] = it.default_pct; });
   STATE.validator_count = CFG.network.active_validators_today;
+  STATE.mean_self_stake = CFG.inputs.mean_self_stake.default;
   STATE.from_buffer = {};
   CFG.inputs.from_buffer.items.forEach(it => { STATE.from_buffer[it.id] = it.default; });
 }
@@ -138,6 +136,12 @@ function render() {
   sliderInput(vcWrap, {
     id: 'validator_count', label: 'Active set', min: 200, max: 600, step: 10,
   }, STATE.validator_count, v => { STATE.validator_count = v; recompute(); });
+  // Peer self-stake: what every OTHER validator is assumed to self-stake.
+  // Drives this validator's share of the incentive pot — a big lever on APY.
+  const ms = CFG.inputs.mean_self_stake;
+  sliderInput(vcWrap, {
+    id: 'mean_self_stake', label: 'Peer self-stake', min: ms.min, max: ms.max, step: ms.step,
+  }, STATE.mean_self_stake, v => { STATE.mean_self_stake = v; recompute(); });
 
   renderFromBuffer();
   renderPresets();
@@ -352,9 +356,10 @@ function recompute() {
   const valOwnFromStaker = stakerDot * (TYP_OWN / totalStaked);
   const nomFromStaker = stakerDot * (TYP_NOMINATOR / totalStaked);
 
-  // Validator-only incentive pot — weight curve, against mean
+  // Validator-only incentive pot — this validator's curve weight vs. the network's.
+  // Other validators are assumed to all self-stake STATE.mean_self_stake (the slider).
   const valWeight = incentiveWeight(TYP_OWN);
-  const meanWeight = incentiveWeight(CFG.inputs.mean_self_stake.default);
+  const meanWeight = incentiveWeight(STATE.mean_self_stake);
   const totalWeight = STATE.validator_count * meanWeight;
   const valIncentive = totalWeight > 0 ? incentiveDot * (valWeight / totalWeight) : 0;
 
@@ -365,16 +370,18 @@ function recompute() {
   const kpis = [
     { label: 'Costs', value: fmt.dot(costsDot), sub: fmt.usd(costsDot * price) },
     { label: 'Savings', value: fmt.dot(savingsDot), sub: savingsDot < 0 ? 'overdraft' : fmt.usd(savingsDot * price) },
-    { label: 'Validator APY', value: fmt.pct(valApy), sub: `${fmt.dot(valYearlyDot)} on 30k self-stake` },
+    { label: 'Validator APY', value: fmt.pct(valApy), sub: `${fmt.dot(valYearlyDot)} on 30k self-stake`,
+      info: `APY on a typical validator's own 30,000 DOT self-stake (the curve optimum) — not the whole pool. Two parts: (1) staker-pool share, pro-rata across all ${fmt.dot(totalStaked)} DOT staked; (2) incentive-pot share, this validator's curve weight vs. ${STATE.validator_count} validators at the 'peer self-stake' you set (${fmt.dot(STATE.mean_self_stake)} DOT). Lower peer self-stake → higher APY. No commission.` },
     { label: 'Nominator APY', value: fmt.pct(nomApy), sub: `per 1k bonded` },
     { label: 'Inflation', value: fmt.pct(yearlyEm/ti), sub: 'at ' + STATE.year },
     { label: 'Validator ops pUSD cost', value: pusdYearlyUsd > 0 ? fmt.dot(pusdInDot) : '—', sub: pusdYearlyUsd > 0 ? fmt.usd(pusdYearlyUsd) : null },
   ];
   document.getElementById('kpi-strip').innerHTML = kpis.map(d => {
     const cls = d.value === fmt.dot(savingsDot) && savingsDot < 0 ? ' kpi-warn' : '';
+    const info = d.info ? ` <button class="info-btn kpi-info" data-info="${d.info.replace(/"/g, '&quot;')}">i</button>` : '';
     return `
       <div class="kpi${cls}">
-        <div class="label">${d.label}</div>
+        <div class="label">${d.label}${info}</div>
         <div class="value">${d.value}</div>
         ${d.sub ? `<div class="sub">${d.sub}</div>` : ''}
       </div>`;
@@ -472,17 +479,20 @@ function drawFlow(yearlyEm) {
 
 function wireInfoButtons() {
   const pop = document.getElementById('info-popover');
-  document.querySelectorAll('.info-btn').forEach(btn => {
-    btn.onclick = (e) => {
+  // Delegated — works for info buttons rendered after boot (e.g. inside KPIs).
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('.info-btn');
+    if (btn) {
       e.stopPropagation();
       pop.textContent = btn.dataset.info;
       const r = btn.getBoundingClientRect();
       pop.style.left = Math.min(window.innerWidth - 280, r.left) + 'px';
       pop.style.top = (r.bottom + 6) + 'px';
       pop.classList.remove('hidden');
-    };
+    } else {
+      pop.classList.add('hidden');
+    }
   });
-  document.addEventListener('click', () => document.getElementById('info-popover').classList.add('hidden'));
 }
 
 boot();

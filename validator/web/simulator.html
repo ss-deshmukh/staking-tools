@@ -62,6 +62,9 @@
   .hero-apy .v { font-family: var(--mono); font-size: clamp(56px, 7vw, 84px); font-weight: 600; letter-spacing: -0.03em; line-height: 1.0; margin: 10px 0 8px; }
   .hero-apy .v .pct { font-size: 0.42em; color: var(--muted); font-weight: 400; margin-left: 2px; }
   .hero-apy .sub { font-size: 14px; color: var(--faint); }
+  /* Data-provenance footnote at the bottom of the whole app. */
+  footer.basis { font-family: var(--mono); font-size: 11px; color: var(--faint);
+    margin-top: 28px; padding-top: 16px; border-top: 1px solid var(--line); }
 
   /* Self-stake control anchored at the bottom of the card. */
   .hero-field { margin-top: auto; padding-top: 4px; }
@@ -248,6 +251,9 @@
       <div class="row-stat"><span class="k">Target self-stake</span><span class="v" id="pOptimum">—</span></div>
       <div class="row-stat"><span class="k">Hard cap self-stake</span><span class="v" id="pCap">—</span></div>
       <div class="row-stat"><span class="k">Slope factor (k)</span><span class="v" id="pSlope">—</span></div>
+      <div class="row-stat"><span class="k">Validators in era</span><span class="v" id="pValidators">—</span></div>
+      <div class="row-stat"><span class="k">Total self-stake (era)</span><span class="v" id="pTotalSelf">—</span></div>
+      <div class="row-stat"><span class="k">Total stake (era)</span><span class="v" id="pTotalStake">—</span></div>
       <div class="row-stat"><span class="k">Inflation / era</span><span class="v" id="pInflation">—</span></div>
       <div class="row-stat"><span class="k">Staker pool / era</span><span class="v" id="pStakerPot">—</span></div>
       <div class="row-stat"><span class="k">Incentive pot / era</span><span class="v teal" id="pIncentivePot">—</span></div>
@@ -255,6 +261,8 @@
   </details>
 
   </div><!-- /.dash -->
+
+  <footer class="basis" id="apyBasis"></footer>
 
 <script id="data" type="application/json">__DATA__</script>
 <script>
@@ -307,9 +315,9 @@
   const toTokens = (planck) => Number(planck) / Number(unit());
 
   const els = {};
-  ["valApy","ownStatus","ownTicks","unit1","unit2","own","ownRange","nom","nomRange","pts","ptsRange",
+  ["valApy","apyBasis","ownStatus","ownTicks","unit1","unit2","own","ownRange","nom","nomRange","pts","ptsRange",
    "segStaker","segIncentive","bStaker","bIncentive","bTotal","bAnnual",
-   "pStaker","pIncentive","pBuffer","pOptimum","pCap","pSlope","pInflation","pStakerPot","pIncentivePot",
+   "pStaker","pIncentive","pBuffer","pOptimum","pCap","pSlope","pValidators","pTotalSelf","pTotalStake","pInflation","pStakerPot","pIncentivePot",
    "curve"]
     .forEach(id => els[id] = document.getElementById(id));
 
@@ -390,6 +398,8 @@
     const r = compute(c, sc, own, nom, pointsFrac);
 
     els.valApy.textContent = pct(r.valApy);
+    // Provenance footnote: APY is computed against every validator's own-stake in this snapshot.
+    els.apyBasis.textContent = `Based on validator self-stakes from Era ${c.era}`;
 
     // Self-stake slider status — terse, zone-driven.
     updateOwnStatus(toTokens(own), sym);
@@ -401,6 +411,11 @@
     els.pOptimum.textContent = REF.optimumTok.toLocaleString() + " " + sym;
     els.pCap.textContent = REF.capTok.toLocaleString() + " " + sym;
     els.pSlope.textContent = REF.slopeK;
+    // Era denominators behind the APY: how many validators, and the stake they're divided over.
+    const totalSelfStake = c.ownStakes.reduce((acc, s) => acc + BigInt(s), 0n);
+    els.pValidators.textContent = c.validatorCount.toLocaleString();
+    els.pTotalSelf.textContent = fmtTok(totalSelfStake) + " " + sym;
+    els.pTotalStake.textContent = fmtTok(BigInt(c.totalStake)) + " " + sym;
     els.pInflation.textContent = fmtTok(BigInt(Math.round(sc.per1 * 100))) + " " + sym;
     els.pStakerPot.textContent = fmtTok(sc.stakerPot) + " " + sym;
     els.pIncentivePot.textContent = fmtTok(sc.incentivePot) + " " + sym;
