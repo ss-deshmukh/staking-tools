@@ -130,6 +130,11 @@
   .row-stat .k { color: var(--muted); }
   .row-stat .v { color: var(--text); }
   .row-stat .v.teal { color: var(--accent-2); }
+  /* Source tag: where a parameter comes from — Ref-1909 proposal vs. live snapshot. */
+  .src { font-size: 9.5px; letter-spacing: 0.04em; text-transform: uppercase; padding: 2px 6px;
+    border-radius: 5px; border: 1px solid var(--line); margin-left: 7px; vertical-align: middle; white-space: nowrap; }
+  .src.ref { color: var(--accent);   border-color: rgba(230,0,122,0.35); }
+  .src.era { color: var(--accent-2); border-color: rgba(45,212,191,0.30); }
 
   /* --- Reward-per-era stacked bar --- */
   .bar-block { margin-top: auto; }
@@ -243,20 +248,20 @@
   </details>
 
   <details class="exp" id="paramsExp">
-    <summary>Chain parameters (Ref 1909) <span class="chev">›</span></summary>
+    <summary>Chain parameters <span class="chev">›</span></summary>
     <div class="exp-body">
-      <div class="row-stat"><span class="k">Staker rewards budget</span><span class="v" id="pStaker">—</span></div>
-      <div class="row-stat"><span class="k">Validator incentive budget</span><span class="v teal" id="pIncentive">—</span></div>
-      <div class="row-stat"><span class="k">Buffer</span><span class="v" id="pBuffer">—</span></div>
-      <div class="row-stat"><span class="k">Target self-stake</span><span class="v" id="pOptimum">—</span></div>
-      <div class="row-stat"><span class="k">Hard cap self-stake</span><span class="v" id="pCap">—</span></div>
-      <div class="row-stat"><span class="k">Slope factor (k)</span><span class="v" id="pSlope">—</span></div>
-      <div class="row-stat"><span class="k">Validators in era</span><span class="v" id="pValidators">—</span></div>
-      <div class="row-stat"><span class="k">Total self-stake (era)</span><span class="v" id="pTotalSelf">—</span></div>
-      <div class="row-stat"><span class="k">Total stake (era)</span><span class="v" id="pTotalStake">—</span></div>
-      <div class="row-stat"><span class="k">Inflation / era</span><span class="v" id="pInflation">—</span></div>
-      <div class="row-stat"><span class="k">Staker pool / era</span><span class="v" id="pStakerPot">—</span></div>
-      <div class="row-stat"><span class="k">Incentive pot / era</span><span class="v teal" id="pIncentivePot">—</span></div>
+      <div class="row-stat"><span class="k">Staker rewards budget <span class="src ref">Ref 1909</span></span><span class="v" id="pStaker">—</span></div>
+      <div class="row-stat"><span class="k">Validator incentive budget <span class="src ref">Ref 1909</span></span><span class="v teal" id="pIncentive">—</span></div>
+      <div class="row-stat"><span class="k">Buffer <span class="src ref">Ref 1909</span></span><span class="v" id="pBuffer">—</span></div>
+      <div class="row-stat"><span class="k">Target self-stake <span class="src ref">Ref 1909</span></span><span class="v" id="pOptimum">—</span></div>
+      <div class="row-stat"><span class="k">Hard cap self-stake <span class="src ref">Ref 1909</span></span><span class="v" id="pCap">—</span></div>
+      <div class="row-stat"><span class="k">Slope factor (k) <span class="src ref">Ref 1909</span></span><span class="v" id="pSlope">—</span></div>
+      <div class="row-stat"><span class="k">Validators in era <span class="src era">—</span></span><span class="v" id="pValidators">—</span></div>
+      <div class="row-stat"><span class="k">Total self-stake (era) <span class="src era">—</span></span><span class="v" id="pTotalSelf">—</span></div>
+      <div class="row-stat"><span class="k">Total stake (era) <span class="src era">—</span></span><span class="v" id="pTotalStake">—</span></div>
+      <div class="row-stat"><span class="k">Inflation / era <span class="src era">—</span></span><span class="v" id="pInflation">—</span></div>
+      <div class="row-stat"><span class="k">Staker pool / era <span class="src ref">Ref 1909</span></span><span class="v" id="pStakerPot">—</span></div>
+      <div class="row-stat"><span class="k">Incentive pot / era <span class="src ref">Ref 1909</span></span><span class="v teal" id="pIncentivePot">—</span></div>
     </div>
   </details>
 
@@ -413,6 +418,7 @@
     els.pSlope.textContent = REF.slopeK;
     // Era denominators behind the APY: how many validators, and the stake they're divided over.
     const totalSelfStake = c.ownStakes.reduce((acc, s) => acc + BigInt(s), 0n);
+    document.querySelectorAll(".src.era").forEach(el => el.textContent = "Era " + c.era);
     els.pValidators.textContent = c.validatorCount.toLocaleString();
     els.pTotalSelf.textContent = fmtTok(totalSelfStake) + " " + sym;
     els.pTotalStake.textContent = fmtTok(BigInt(c.totalStake)) + " " + sym;
