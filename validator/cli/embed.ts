@@ -8,7 +8,7 @@
  *   pnpm tsx validator/cli/embed.ts > validator/web/data.json
  */
 import { getChain, CHAINS } from "../../shared/chains/index.js";
-import { readEra, listEras } from "../../shared/snapshot/store.js";
+import { readEra, listEras, readIndex } from "../../shared/snapshot/store.js";
 
 interface EmbedValidator {
   address: string;
@@ -24,6 +24,8 @@ interface EmbedChain {
   tokenSymbol: string;
   tokenDecimals: number;
   era: number;
+  /** When this snapshot was last refreshed from chain (epoch ms, as string). */
+  updatedAtMs: string | null;
   eraDurationMs: string;
   totalStakerReward: string;
   validatorIncentiveBudget: string;
@@ -52,6 +54,7 @@ async function buildChain(key: string): Promise<EmbedChain | null> {
   const era = eras[eras.length - 1];
   const s = await readEra(chain, era);
   if (!s) return null;
+  const index = await readIndex(chain);
 
   // Pick samples spanning the own-stake range: min, low-quartile, median, top.
   const byOwn = [...s.validators].sort(
@@ -85,6 +88,7 @@ async function buildChain(key: string): Promise<EmbedChain | null> {
     tokenSymbol: s.chain.tokenSymbol,
     tokenDecimals: s.chain.tokenDecimals,
     era: s.era,
+    updatedAtMs: index?.updatedAtMs ?? null,
     eraDurationMs: s.eraDurationMs,
     totalStakerReward: s.totalStakerReward,
     validatorIncentiveBudget: s.validatorIncentiveBudget,

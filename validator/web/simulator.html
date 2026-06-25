@@ -453,6 +453,14 @@
   }
 
   const pct = (f) => (f * 100).toFixed(2);
+  // " · updated 24 Jun 2026" — empty if no timestamp on this snapshot.
+  function fmtUpdated(ms) {
+    if (ms == null) return "";
+    const d = new Date(Number(ms));
+    if (isNaN(d.getTime())) return "";
+    const s = d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+    return ` · updated ${s}`;
+  }
   function fmtTok(planck) {
     const t = toTokens(planck);
     return t.toLocaleString(undefined, { maximumFractionDigits: t < 1 ? 4 : 2 });
@@ -468,8 +476,8 @@
     const r = compute(c, sc, own, nom, pointsFrac);
 
     els.valApy.textContent = pct(r.valApy);
-    // Provenance footnote: APY is computed against every validator's own-stake in this snapshot.
-    els.apyBasis.textContent = `Based on validator self-stakes from Era ${c.era}`;
+    // Provenance footnote: snapshot era + when it was last refreshed from chain.
+    els.apyBasis.textContent = `Based on Era ${c.era}${fmtUpdated(c.updatedAtMs)}`;
 
     // Self-stake slider status — terse, zone-driven.
     updateOwnStatus(toTokens(own), sym);
