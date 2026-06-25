@@ -53,6 +53,22 @@ const APPS: App[] = [
       );
     },
   },
+  {
+    slug: "expenses",
+    title: "Protocol Expenses",
+    blurb: "Drag the DAP budget split, see protocol costs / APYs / flow update live.",
+    icon: "💸",
+    build: () => {
+      execFileSync("pnpm", ["exec", "tsx", "expenses/cli/build-web.ts"], {
+        cwd: ROOT,
+        stdio: "inherit",
+      });
+      return readFileSync(
+        join(ROOT, "expenses", "web", "expenses.built.html"),
+        "utf8",
+      );
+    },
+  },
 ];
 
 function landingPage(apps: App[]): string {

@@ -1,0 +1,491 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Protocol expenses</title>
+  <style>/* __STYLE__ */</style>
+</head>
+<body>
+
+<header class="top">
+  <h1><a href="../">←</a> Protocol expenses</h1>
+  <div class="top-right">
+    <label class="top-input price-slider">
+      <span class="price-label">DOT $<b id="price-readout">1.33</b></span>
+      <input type="range" id="price-input" min="0" max="4" step="1" value="0">
+    </label>
+    <select id="year-select"></select>
+  </div>
+</header>
+
+<main>
+<div class="split">
+
+  <section>
+    <div class="panel">
+      <div class="panel-head">
+        <h2>DAP split</h2>
+        <button class="info-btn" data-info="The minted DOT is split between three pots. Drag the handles on the bar.">i</button>
+      </div>
+      <div id="ternary-slider"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <h2>Validators</h2>
+        <button class="info-btn" data-info="Active validator set size. Today 600, target ~300.">i</button>
+      </div>
+      <div id="validator-count-input"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <h2>From buffer <span class="muted-tag">planned</span></h2>
+        <button class="info-btn" data-info="Treasury and pUSD operating costs are funded out of the buffer pot. They reduce savings, not stakers.">i</button>
+      </div>
+      <div id="from-buffer-inputs"></div>
+    </div>
+
+    <div class="panel">
+      <h2>Presets</h2>
+      <div id="presets-list"></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="kpi-grid" id="kpi-strip"></div>
+
+    <div class="chart-wrap">
+      <div class="panel-head">
+        <h3>Flow</h3>
+        <button class="info-btn" data-info="Issuance flows into the DAP, then out to each pot. Dot size = relative DOT/yr.">i</button>
+      </div>
+      <svg class="flow-svg" id="flow" viewBox="0 0 900 460" preserveAspectRatio="xMidYMid meet"></svg>
+    </div>
+
+  </section>
+
+</div>
+</main>
+
+<div id="info-popover" class="popover hidden"></div>
+
+<script>
+// Config baked in at build time (replaces fetch('config.yaml')).
+const __EXPENSES_CONFIG__ = __CONFIG__;
+</script>
+<script>
+// __LIB__
+</script>
+<script>
+const STATE = {};
+
+async function boot() {
+  await loadConfig();
+  initState();
+  buildYearSelect();
+  render();
+  recompute();
+  wireInfoButtons();
+}
+
+function initState() {
+  STATE.year = CFG.inputs.year.default;
+  STATE.dap_split = {};
+  CFG.inputs.dap_split.items.forEach(it => { STATE.dap_split[it.id] = it.default_pct; });
+  STATE.validator_count = CFG.network.active_validators_today;
+  STATE.from_buffer = {};
+  CFG.inputs.from_buffer.items.forEach(it => { STATE.from_buffer[it.id] = it.default; });
+}
+
+function buildYearSelect() {
+  const sel = document.getElementById('year-select');
+  // 2-year periods aligned to the issuance curve's step.
+  // value = period start year; emission = avg over (start, start+2)
+  for (let y = CFG.inputs.year.min; y <= CFG.inputs.year.max - 1; y += 2) {
+    const opt = document.createElement('option');
+    opt.value = y;
+    opt.textContent = `${y}–${y + 1}`;
+    if (y === STATE.year) opt.selected = true;
+    sel.appendChild(opt);
+  }
+  sel.onchange = () => { STATE.year = +sel.value; recompute(); };
+
+  const priceInp = document.getElementById('price-input');
+  const priceReadout = document.getElementById('price-readout');
+  const stops = CFG.meta.dot_price_stops || [1.33, 5, 10, 50, 100];
+  const startIdx = Math.max(0, stops.indexOf(CFG.meta.dot_price_usd));
+  priceInp.min = 0;
+  priceInp.max = stops.length - 1;
+  priceInp.step = 1;
+  priceInp.value = startIdx;
+  priceReadout.textContent = stops[startIdx];
+  priceInp.oninput = () => {
+    const idx = +priceInp.value;
+    const v = stops[idx];
+    CFG.meta.dot_price_usd = v;
+    priceReadout.textContent = v;
+    recompute();
+  };
+}
+
+function render() {
+  renderTernary();
+
+  const vcWrap = document.getElementById('validator-count-input');
+  vcWrap.innerHTML = '';
+  sliderInput(vcWrap, {
+    id: 'validator_count', label: 'Active set', min: 200, max: 600, step: 10,
+  }, STATE.validator_count, v => { STATE.validator_count = v; recompute(); });
+
+  renderFromBuffer();
+  renderPresets();
+}
+
+function renderPresets() {
+  const wrap = document.getElementById('presets-list');
+  wrap.innerHTML = '';
+  CFG.presets.forEach(p => {
+    const btn = document.createElement('button');
+    btn.className = 'preset-btn';
+    btn.innerHTML = `<div class="preset-label">${p.label}</div>${p.sub ? `<div class="preset-sub">${p.sub}</div>` : ''}`;
+    btn.onclick = () => applyPreset(p);
+    wrap.appendChild(btn);
+  });
+}
+
+function applyPreset(p) {
+  Object.entries(p.sets).forEach(([path, value]) => {
+    const [group, key] = path.split('.');
+    if (group === 'dap_split') STATE.dap_split[key] = value;
+    else if (group === 'from_buffer') STATE.from_buffer[key] = value;
+    else if (group === 'validator_count') STATE.validator_count = value;
+    else if (path === 'validator_count') STATE.validator_count = value;
+  });
+  // Re-render every input panel so sliders/handles reflect new state
+  render();
+  recompute();
+}
+
+function renderFromBuffer() {
+  const fbWrap = document.getElementById('from-buffer-inputs');
+  fbWrap.innerHTML = '';
+  CFG.inputs.from_buffer.items.forEach(it => {
+    const inp = sliderInput(fbWrap, it, STATE.from_buffer[it.id], v => {
+      STATE.from_buffer[it.id] = v;
+      recompute();
+    });
+    // Soft-block: on release, snap back if this slider's contribution exceeds available buffer.
+    const snapBack = () => {
+      const limit = bufferLimitFor(it.id);
+      const currentDot = it.id === 'treasury_dot'
+        ? STATE.from_buffer.treasury_dot
+        : STATE.from_buffer.pusd_per_validator_month * 12 * STATE.validator_count / CFG.meta.dot_price_usd;
+      if (currentDot > limit) {
+        // Convert limit (in DOT) back to slider's native unit
+        const newSliderVal = it.id === 'treasury_dot'
+          ? Math.max(it.min, Math.floor(limit / it.step) * it.step)
+          : Math.max(it.min, Math.floor(limit * CFG.meta.dot_price_usd / 12 / STATE.validator_count / it.step) * it.step);
+        STATE.from_buffer[it.id] = newSliderVal;
+        inp.value = newSliderVal;
+        // Trigger label refresh
+        const valSpan = inp.parentElement.querySelector('.val');
+        const fmtVal = (v) => it.unit === '%' ? v + '%' : it.unit === '$' ? '$' + v.toLocaleString() : v >= 1000 ? v.toLocaleString() : String(v);
+        if (valSpan) valSpan.textContent = fmtVal(newSliderVal);
+        recompute();
+      }
+    };
+    inp.addEventListener('change', snapBack);
+    inp.addEventListener('mouseup', snapBack);
+    inp.addEventListener('touchend', snapBack);
+  });
+}
+
+// How much buffer DOT is available for a given slider, given the OTHER slider's current draw.
+function bufferLimitFor(sliderId) {
+  const yearlyEm = yearlyEmission(STATE.year);
+  const bufferDot = yearlyEm * STATE.dap_split.buffer / 100;
+  if (sliderId === 'treasury_dot') {
+    const pusdInDot = STATE.from_buffer.pusd_per_validator_month * 12 * STATE.validator_count / CFG.meta.dot_price_usd;
+    return Math.max(0, bufferDot - pusdInDot);
+  } else {
+    const treasuryDot = STATE.from_buffer.treasury_dot;
+    return Math.max(0, bufferDot - treasuryDot);
+  }
+}
+
+// ───── Ternary slider: 3-segment bar with two draggable handles ─────
+// Order: buffer | staker_rewards | validator_incentive (left → right)
+const TERNARY_ORDER = ['buffer', 'staker_rewards', 'validator_incentive'];
+
+function renderTernary() {
+  const wrap = document.getElementById('ternary-slider');
+  wrap.innerHTML = `
+    <div class="ternary">
+      <div class="ternary-bar" id="t-bar">
+        <div class="t-seg" data-id="buffer"></div>
+        <div class="t-seg" data-id="staker_rewards"></div>
+        <div class="t-seg" data-id="validator_incentive"></div>
+        <div class="t-handle" data-handle="0"></div>
+        <div class="t-handle" data-handle="1"></div>
+      </div>
+      <div class="ternary-labels">
+        <div class="t-label" data-id="buffer">
+          <span class="dot" style="background:${potColor('buffer')}"></span>
+          <span class="t-name">Buffer</span>
+          <span class="t-pct" id="t-pct-buffer"></span>
+        </div>
+        <div class="t-label" data-id="staker_rewards">
+          <span class="dot" style="background:${potColor('staker_rewards')}"></span>
+          <span class="t-name">Staker rewards</span>
+          <span class="t-pct" id="t-pct-staker_rewards"></span>
+        </div>
+        <div class="t-label" data-id="validator_incentive">
+          <span class="dot" style="background:${potColor('validator_incentive')}"></span>
+          <span class="t-name">Validator incentive</span>
+          <span class="t-pct" id="t-pct-validator_incentive"></span>
+        </div>
+      </div>
+    </div>
+  `;
+  applyTernary();
+  wireTernaryDrag();
+}
+
+function applyTernary() {
+  const bar = document.querySelector('#t-bar');
+  if (!bar) return;
+  const a = STATE.dap_split.buffer;
+  const b = STATE.dap_split.staker_rewards;
+  const c = STATE.dap_split.validator_incentive;
+  bar.querySelector('[data-id="buffer"]').style.width = a + '%';
+  bar.querySelector('[data-id="staker_rewards"]').style.width = b + '%';
+  bar.querySelector('[data-id="validator_incentive"]').style.width = c + '%';
+  bar.querySelector('[data-id="buffer"]').style.background = potColor('buffer');
+  bar.querySelector('[data-id="staker_rewards"]').style.background = potColor('staker_rewards');
+  bar.querySelector('[data-id="validator_incentive"]').style.background = potColor('validator_incentive');
+  bar.querySelector('[data-handle="0"]').style.left = a + '%';
+  bar.querySelector('[data-handle="1"]').style.left = (a + b) + '%';
+  document.getElementById('t-pct-buffer').textContent = Math.round(a) + '%';
+  document.getElementById('t-pct-staker_rewards').textContent = Math.round(b) + '%';
+  document.getElementById('t-pct-validator_incentive').textContent = Math.round(c) + '%';
+}
+
+function wireTernaryDrag() {
+  const bar = document.getElementById('t-bar');
+  let active = null;
+  const updateFromEvent = (e) => {
+    const rect = bar.getBoundingClientRect();
+    const x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
+    let pct = Math.max(0, Math.min(100, (x / rect.width) * 100));
+    pct = Math.round(pct);
+    if (active === 0) {
+      // Handle 0 = boundary between buffer | staker_rewards
+      const handle1Pos = STATE.dap_split.buffer + STATE.dap_split.staker_rewards;
+      pct = Math.min(pct, handle1Pos);
+      const oldA = STATE.dap_split.buffer;
+      STATE.dap_split.buffer = pct;
+      STATE.dap_split.staker_rewards += (oldA - pct);
+    } else if (active === 1) {
+      const a = STATE.dap_split.buffer;
+      pct = Math.max(pct, a);
+      const oldB = STATE.dap_split.staker_rewards;
+      STATE.dap_split.staker_rewards = pct - a;
+      STATE.dap_split.validator_incentive += (oldB - STATE.dap_split.staker_rewards);
+    }
+    applyTernary();
+    recompute();
+  };
+  bar.querySelectorAll('.t-handle').forEach(h => {
+    const start = (e) => {
+      e.preventDefault();
+      active = +h.dataset.handle;
+      const move = (ev) => updateFromEvent(ev);
+      const end = () => {
+        active = null;
+        document.removeEventListener('mousemove', move);
+        document.removeEventListener('mouseup', end);
+        document.removeEventListener('touchmove', move);
+        document.removeEventListener('touchend', end);
+      };
+      document.addEventListener('mousemove', move);
+      document.addEventListener('mouseup', end);
+      document.addEventListener('touchmove', move, { passive: false });
+      document.addEventListener('touchend', end);
+    };
+    h.addEventListener('mousedown', start);
+    h.addEventListener('touchstart', start, { passive: false });
+  });
+}
+
+function potColor(id) {
+  return ({ buffer: '#56b4e9', staker_rewards: '#e6007a', validator_incentive: '#7bd88f' })[id] || '#888';
+}
+
+// ───── Recompute / KPIs ─────
+function recompute() {
+  const ti = tiNew(STATE.year);
+  const yearlyEm = yearlyEmission(STATE.year);
+  const price = CFG.meta.dot_price_usd;
+
+  const bufferDot = yearlyEm * STATE.dap_split.buffer / 100;
+  const stakerDot = yearlyEm * STATE.dap_split.staker_rewards / 100;
+  const incentiveDot = yearlyEm * STATE.dap_split.validator_incentive / 100;
+
+  const treasuryDot = STATE.from_buffer.treasury_dot;
+  const pusdYearlyUsd = STATE.from_buffer.pusd_per_validator_month * 12 * STATE.validator_count;
+  const pusdInDot = pusdYearlyUsd / price;
+
+  const costsDot = stakerDot + incentiveDot;
+  const savingsDot = bufferDot - treasuryDot - pusdInDot;
+
+  // Typical validator/nominator APY computation (no commission — it's going away once budget split lands)
+  const TYP_OWN = 30_000;            // typical validator self-stake (curve optimum)
+  const TYP_NOMINATOR = 1_000;       // typical nominator bond
+  const totalStaked = CFG.network.total_staked_dot;
+  const typBacked = Math.max(0, totalStaked / STATE.validator_count - TYP_OWN);
+  const typTotalBack = TYP_OWN + typBacked;
+
+  // Staker pot is split pro-rata across all stake (own + nominator). No commission.
+  const valOwnFromStaker = stakerDot * (TYP_OWN / totalStaked);
+  const nomFromStaker = stakerDot * (TYP_NOMINATOR / totalStaked);
+
+  // Validator-only incentive pot — weight curve, against mean
+  const valWeight = incentiveWeight(TYP_OWN);
+  const meanWeight = incentiveWeight(CFG.inputs.mean_self_stake.default);
+  const totalWeight = STATE.validator_count * meanWeight;
+  const valIncentive = totalWeight > 0 ? incentiveDot * (valWeight / totalWeight) : 0;
+
+  const valYearlyDot = valOwnFromStaker + valIncentive;
+  const valApy = TYP_OWN > 0 ? valYearlyDot / TYP_OWN : 0;
+  const nomApy = TYP_NOMINATOR > 0 ? nomFromStaker / TYP_NOMINATOR : 0;
+
+  const kpis = [
+    { label: 'Costs', value: fmt.dot(costsDot), sub: fmt.usd(costsDot * price) },
+    { label: 'Savings', value: fmt.dot(savingsDot), sub: savingsDot < 0 ? 'overdraft' : fmt.usd(savingsDot * price) },
+    { label: 'Validator APY', value: fmt.pct(valApy), sub: `${fmt.dot(valYearlyDot)} on 30k self-stake` },
+    { label: 'Nominator APY', value: fmt.pct(nomApy), sub: `per 1k bonded` },
+    { label: 'Inflation', value: fmt.pct(yearlyEm/ti), sub: 'at ' + STATE.year },
+    { label: 'Validator ops pUSD cost', value: pusdYearlyUsd > 0 ? fmt.dot(pusdInDot) : '—', sub: pusdYearlyUsd > 0 ? fmt.usd(pusdYearlyUsd) : null },
+  ];
+  document.getElementById('kpi-strip').innerHTML = kpis.map(d => {
+    const cls = d.value === fmt.dot(savingsDot) && savingsDot < 0 ? ' kpi-warn' : '';
+    return `
+      <div class="kpi${cls}">
+        <div class="label">${d.label}</div>
+        <div class="value">${d.value}</div>
+        ${d.sub ? `<div class="sub">${d.sub}</div>` : ''}
+      </div>`;
+  }).join('');
+
+  drawFlow(yearlyEm);
+}
+
+// ───── Animated dot flow ─────
+let flowAnim = null;
+const FLOW_DOTS = [];
+
+function drawFlow(yearlyEm) {
+  const svg = document.getElementById('flow');
+  const items = CFG.inputs.dap_split.items;
+  const W = 900, H = 460;
+  const dapX = 280, dapY = 220, dapR = 48;
+  const drainsX = 580, potW = 280;
+
+  const padding = 16;
+  const usableH = H - padding * 2;
+  const slotH = usableH / Math.max(items.length, 1);
+
+  const price = CFG.meta.dot_price_usd;
+  let svgHTML = `
+    <text x="30" y="${dapY-26}" class="muted-text" style="font-size:13px">Issuance</text>
+    <text x="30" y="${dapY-4}" style="font-size:16px;font-weight:600">${fmt.dot(yearlyEm)} DOT/yr</text>
+    <text x="30" y="${dapY+14}" style="font-size:13px" class="muted-text">${fmt.usd(yearlyEm * price)}/yr</text>
+    <line x1="160" y1="${dapY}" x2="${dapX-dapR-2}" y2="${dapY}" stroke="var(--border)" stroke-width="1"/>
+    <circle cx="${dapX}" cy="${dapY}" r="${dapR}" fill="var(--panel-2)" stroke="var(--accent)" stroke-width="2.5"/>
+    <text x="${dapX}" y="${dapY+6}" text-anchor="middle" style="font-weight:700;font-size:18px">DAP</text>
+    <text x="${dapX}" y="${H-26}" class="muted-text" style="font-size:12px" text-anchor="middle">slashes • burns • fees</text>
+    <line x1="${dapX}" y1="${H-38}" x2="${dapX}" y2="${dapY+dapR+2}" stroke="var(--border)" stroke-width="1" stroke-dasharray="3 3"/>
+  `;
+
+  items.forEach((it, i) => {
+    const v = STATE.dap_split[it.id];
+    const yPot = padding + slotH * i + slotH/2;
+    const c = potColor(it.id);
+    const dotAmount = yearlyEm * v / 100;
+    const opacity = v > 0 ? 1 : 0.35;
+    svgHTML += `
+      <path id="path-${it.id}" d="M ${dapX+dapR} ${dapY} C ${dapX+dapR+80} ${dapY}, ${drainsX-80} ${yPot}, ${drainsX-2} ${yPot}"
+            fill="none" stroke="var(--border)" stroke-width="1" opacity="${opacity * 0.5}"/>
+      <rect class="pot-rect" x="${drainsX}" y="${yPot-30}" width="${potW}" height="60" rx="6" opacity="${opacity}"/>
+      <text x="${drainsX+16}" y="${yPot-10}" style="font-size:14px;font-weight:600" opacity="${opacity}">${it.label}</text>
+      <text x="${drainsX+16}" y="${yPot+8}" style="font-size:12px" class="muted-text" opacity="${opacity}">${Math.round(v)}% · ${fmt.dot(dotAmount)} DOT/yr</text>
+      <text x="${drainsX+16}" y="${yPot+22}" style="font-size:12px" class="muted-text" opacity="${opacity}">${fmt.usd(dotAmount * price)}/yr</text>
+    `;
+  });
+  svgHTML += `<g id="dot-layer"></g>`;
+  svg.innerHTML = svgHTML;
+
+  FLOW_DOTS.length = 0;
+  items.forEach(it => {
+    const v = STATE.dap_split[it.id];
+    if (v <= 0) return;
+    const n = Math.max(1, Math.round(v / 5));
+    for (let i = 0; i < n; i++) {
+      FLOW_DOTS.push({
+        itemId: it.id,
+        color: potColor(it.id),
+        size: 3 + Math.sqrt(v) * 0.6,
+        t: (i / n) + Math.random() * 0.05,
+        speed: 0.2 + Math.random() * 0.15,
+      });
+    }
+  });
+
+  if (flowAnim) cancelAnimationFrame(flowAnim);
+  let lastT = performance.now();
+  const dotLayer = svg.querySelector('#dot-layer');
+  const paths = {};
+  items.forEach(it => { paths[it.id] = svg.querySelector(`#path-${it.id}`); });
+
+  function tick(now) {
+    const dt = (now - lastT) / 1000;
+    lastT = now;
+    let frag = '';
+    FLOW_DOTS.forEach(d => {
+      d.t += dt * d.speed;
+      if (d.t > 1) d.t -= 1;
+      const path = paths[d.itemId];
+      if (!path) return;
+      const len = path.getTotalLength();
+      const p = path.getPointAtLength(d.t * len);
+      const op = d.t < 0.05 ? d.t * 20 : (d.t > 0.95 ? (1 - d.t) * 20 : 1);
+      frag += `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${d.size}" fill="${d.color}" opacity="${op.toFixed(2)}"/>`;
+    });
+    dotLayer.innerHTML = frag;
+    flowAnim = requestAnimationFrame(tick);
+  }
+  flowAnim = requestAnimationFrame(tick);
+}
+
+function wireInfoButtons() {
+  const pop = document.getElementById('info-popover');
+  document.querySelectorAll('.info-btn').forEach(btn => {
+    btn.onclick = (e) => {
+      e.stopPropagation();
+      pop.textContent = btn.dataset.info;
+      const r = btn.getBoundingClientRect();
+      pop.style.left = Math.min(window.innerWidth - 280, r.left) + 'px';
+      pop.style.top = (r.bottom + 6) + 'px';
+      pop.classList.remove('hidden');
+    };
+  });
+  document.addEventListener('click', () => document.getElementById('info-popover').classList.add('hidden'));
+}
+
+boot();
+</script>
+
+</body>
+</html>

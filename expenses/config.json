@@ -1,0 +1,271 @@
+{
+  "meta": {
+    "title": "Polkadot staking — economic simulator",
+    "subtitle": "Drag the knobs governance can actually turn. Everything else is computed.",
+    "today_date": "2026-05-10",
+    "dot_price_usd": 1.33,
+    "dot_price_stops": [
+      1.33,
+      5,
+      10,
+      50,
+      100
+    ],
+    "assumed_leak_pct": 50
+  },
+  "issuance_curve": {
+    "hard_cap_dot": 2100000000,
+    "bi_annual_rate": 0.2628,
+    "step_period_years": 2,
+    "march_2026_ti_dot": 1674342153,
+    "current_ti_dot": 1675000000,
+    "legacy_inflation": 0.08,
+    "legacy_baseline_dot": 521634240
+  },
+  "network": {
+    "active_validators_today": 600,
+    "active_validators_future": 300,
+    "min_validator_stake_dot": 1276095,
+    "total_staked_dot": 885012465,
+    "min_self_stake_dot": 10000
+  },
+  "inputs": {
+    "year": {
+      "id": "year",
+      "label": "Year",
+      "default": 2026,
+      "min": 2026,
+      "max": 2036,
+      "step": 1
+    },
+    "dap_split": {
+      "id": "dap_split",
+      "label": "DAP budget split",
+      "pallet_ref": "BudgetAllocation",
+      "extrinsic": "dap.set_budget_allocation",
+      "items": [
+        {
+          "id": "buffer",
+          "label": "Buffer",
+          "budget_key": "b\"buffer\"",
+          "default_pct": 15,
+          "note": "Funds treasury and pUSD ops below. Absorbs slashes, burns, fees."
+        },
+        {
+          "id": "staker_rewards",
+          "label": "Staker rewards",
+          "budget_key": "b\"staker_rewards\"",
+          "default_pct": 85
+        },
+        {
+          "id": "validator_incentive",
+          "label": "Validator incentive",
+          "budget_key": "b\"validator_incentive\"",
+          "default_pct": 0
+        }
+      ]
+    },
+    "from_buffer": {
+      "id": "from_buffer",
+      "label": "From buffer (governance line items)",
+      "items": [
+        {
+          "id": "treasury_dot",
+          "label": "Treasury budget",
+          "default": 8352158,
+          "min": 0,
+          "max": 30000000,
+          "step": 100000,
+          "unit": "DOT"
+        },
+        {
+          "id": "pusd_per_validator_month",
+          "label": "pUSD ops / validator / month",
+          "default": 0,
+          "min": 0,
+          "max": 10000,
+          "step": 100,
+          "unit": "$"
+        }
+      ]
+    },
+    "validator_probe": {
+      "id": "validator_probe",
+      "label": "Probe validator earnings",
+      "items": [
+        {
+          "id": "own_stake",
+          "label": "Validator self-stake (DOT)",
+          "default": 30000,
+          "min": 10000,
+          "max": 1000000,
+          "step": 1000
+        },
+        {
+          "id": "commission_pct",
+          "label": "Validator commission",
+          "default": 10,
+          "min": 10,
+          "max": 100,
+          "step": 1,
+          "unit": "%"
+        },
+        {
+          "id": "backed_by_dot",
+          "label": "Backed-by stake (nominators)",
+          "default": 2000000,
+          "min": 0,
+          "max": 10000000,
+          "step": 50000
+        }
+      ]
+    },
+    "mean_self_stake": {
+      "id": "mean_self_stake",
+      "label": "Mean validator self-stake (network)",
+      "default": 200000,
+      "min": 10000,
+      "max": 1000000,
+      "step": 10000,
+      "note": "Used to estimate any one validator's share of the incentive pot. Actual chain mean — set to your best guess."
+    }
+  },
+  "self_stake_curve": {
+    "optimum_dot": 30000,
+    "hard_cap_dot": 100000,
+    "slope_factor": 0.5
+  },
+  "kpis": [
+    {
+      "id": "cost_to_protocol",
+      "label": "Security spend / year (inflation cost)",
+      "formula": "yearly_emission_dot × dot_price_usd",
+      "unit": "DOT + USD"
+    },
+    {
+      "id": "effective_inflation",
+      "label": "Effective inflation",
+      "formula": "yearly_emission / total_issuance",
+      "unit": "%"
+    },
+    {
+      "id": "leaked",
+      "label": "Assumed leak from DOT economy",
+      "formula": "cost_to_protocol_usd × assumed_leak_pct",
+      "unit": "$M/yr",
+      "note": "Estimate, not measured"
+    },
+    {
+      "id": "validator_set_size",
+      "label": "Active validators",
+      "formula": "static — 600 today, 300 future",
+      "unit": "count"
+    }
+  ],
+  "presets": [
+    {
+      "id": "launch",
+      "label": "launch",
+      "sub": "PAH 2.3.0",
+      "sets": {
+        "dap_split.buffer": 15,
+        "dap_split.staker_rewards": 85,
+        "dap_split.validator_incentive": 0,
+        "from_buffer.treasury_dot": 0,
+        "from_buffer.pusd_per_validator_month": 0,
+        "validator_count": 600
+      }
+    },
+    {
+      "id": "june",
+      "label": "June split",
+      "sub": "Smaller set, all 3 streams active",
+      "sets": {
+        "dap_split.buffer": 25,
+        "dap_split.staker_rewards": 50,
+        "dap_split.validator_incentive": 25,
+        "from_buffer.treasury_dot": 0,
+        "from_buffer.pusd_per_validator_month": 0,
+        "validator_count": 600
+      }
+    },
+    {
+      "id": "future",
+      "label": "Target state",
+      "sub": "Smaller set, all 3 streams active",
+      "sets": {
+        "dap_split.buffer": 65,
+        "dap_split.staker_rewards": 31,
+        "dap_split.validator_incentive": 4,
+        "from_buffer.treasury_dot": 8352158,
+        "from_buffer.pusd_per_validator_month": 2000,
+        "validator_count": 250
+      }
+    }
+  ],
+  "sources": {
+    "hard_cap": "Ref 1710 — HARD_CAP_TARGET in asset-hub-polkadot/src/staking/mod.rs",
+    "bi_annual_rate": "Ref 1710 — BI_ANNUAL_RATE = 26.28% per 2 years",
+    "budget_allocation": "pallet-dap — BudgetAllocation storage; set_budget_allocation extrinsic",
+    "self_stake_curve": "pallet-staking-async — reward.rs::incentive_weight; OptimumSelfStake / HardCapSelfStake / SelfStakeSlopeFactor",
+    "pusd_stream": "Q4 2026 plan — direction approved, mechanics (CR, vault) still open"
+  },
+  "timeline": {
+    "phases": [
+      {
+        "id": 0,
+        "label": "Already done",
+        "when": "Mar 14, 2026",
+        "status": "done",
+        "title": "Issuance reduction",
+        "what": "120M → 55M DOT/year. Hard-pressure model, supply capped at 2.1B.",
+        "why": "Reduce inflation."
+      },
+      {
+        "id": 1,
+        "label": "Phase 1",
+        "when": "Now → end of May",
+        "status": "imminent",
+        "title": "Validator self-stake",
+        "what": "Referendum to enforce 10% min commission. End of May: 10k self-stake floor enforced. Chill threshold lowered progressively to push non-compliant validators out.",
+        "why": "Validators must carry real skin in the game before nominator risk drops."
+      },
+      {
+        "id": 2,
+        "label": "Phase 2",
+        "when": "Mid June 2026",
+        "status": "planned",
+        "title": "Budget split",
+        "what": "Referendum to propose budget for the split.",
+        "why": "Incentivise validator self-stake. Reduce nominator APY."
+      },
+      {
+        "id": 3,
+        "label": "Phase 3",
+        "when": "When ~600 validators are compliant",
+        "status": "planned",
+        "title": "Nominator changes",
+        "what": "Unslashable. 2-day unbond replaces 28-day.",
+        "why": "Only safe once validators carry the security weight via real self-stake. Timing depends on compliance."
+      },
+      {
+        "id": 4,
+        "label": "Phase 4",
+        "when": "EOY 2026 phased",
+        "status": "planned",
+        "title": "Validator set reduction",
+        "what": "600 → ~400 over 3 months, then onward to ~250. Final number gated on technical review.",
+        "why": "Reduces protocol cost further. Coretime redesign (RFC17) makes a smaller set viable."
+      },
+      {
+        "id": 5,
+        "label": "Phase 5",
+        "when": "After pUSD timeline",
+        "status": "planned",
+        "title": "pUSD operational pay",
+        "what": "Part of validator pay shifts to stablecoins. Tracks pUSD's own rollout +1 month.",
+        "why": "Decouples infra cost from DOT price. Matters more when DOT rises."
+      }
+    ]
+  }
+}

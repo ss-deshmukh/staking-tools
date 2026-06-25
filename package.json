@@ -9,6 +9,7 @@
     "apy": "tsx validator/cli/apy.ts",
     "embed": "tsx validator/cli/embed.ts > validator/web/data.json",
     "build-web": "tsx validator/cli/embed.ts > validator/web/data.json && tsx validator/cli/build-web.ts",
+    "build-expenses": "tsx expenses/cli/build-web.ts",
     "build-site": "tsx tools/build-site.ts",
     "test": "tsx --test validator/test/*.test.ts",
     "papi": "papi",

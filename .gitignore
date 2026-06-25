@@ -6,5 +6,6 @@ dist
 *.log
 validator/web/simulator.built.html
 validator/web/data.json
+expenses/web/expenses.built.html
 site
 .DS_Store
