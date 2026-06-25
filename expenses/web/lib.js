@@ -26,13 +26,6 @@ function tiNew(year) {
   return c.hard_cap_dot - (c.hard_cap_dot - c.march_2026_ti_dot) * Math.pow(1 - c.bi_annual_rate, steps);
 }
 
-// Legacy curve (Ref 1139): flat amount per year off fixed baseline
-function tiLegacy(year) {
-  const c = CFG.issuance_curve;
-  const yearsSince = Math.max(0, year - 2026);
-  return c.march_2026_ti_dot + c.legacy_inflation * c.legacy_baseline_dot * yearsSince;
-}
-
 // Average yearly emission across the 2-year curve step starting at `year`.
 // Matches forum-cited "55.8M post-transition" rate for the 2026-2027 period.
 function yearlyEmission(year) {
@@ -78,15 +71,4 @@ function sliderInput(parent, cfg, value, onChange) {
   };
   parent.appendChild(div);
   return inp;
-}
-
-function checkboxInput(parent, cfg, checked, onChange) {
-  const div = document.createElement('div');
-  div.className = 'toggle-row';
-  div.innerHTML = `
-    <span style="font-weight:600">${cfg.label}</span>
-    <input type="checkbox" ${checked ? 'checked' : ''}>
-  `;
-  div.querySelector('input').onchange = (e) => onChange(e.target.checked);
-  parent.appendChild(div);
 }

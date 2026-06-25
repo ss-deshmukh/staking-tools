@@ -217,8 +217,6 @@ function bufferLimitFor(sliderId) {
 
 // ───── Ternary slider: 3-segment bar with two draggable handles ─────
 // Order: buffer | staker_rewards | validator_incentive (left → right)
-const TERNARY_ORDER = ['buffer', 'staker_rewards', 'validator_incentive'];
-
 function renderTernary() {
   const wrap = document.getElementById('ternary-slider');
   wrap.innerHTML = `
@@ -344,8 +342,6 @@ function recompute() {
   const TYP_OWN = 30_000;            // typical validator self-stake (curve optimum)
   const TYP_NOMINATOR = 1_000;       // typical nominator bond
   const totalStaked = CFG.network.total_staked_dot;
-  const typBacked = Math.max(0, totalStaked / STATE.validator_count - TYP_OWN);
-  const typTotalBack = TYP_OWN + typBacked;
 
   // Staker pot is split pro-rata across all stake (own + nominator). No commission.
   const valOwnFromStaker = stakerDot * (TYP_OWN / totalStaked);

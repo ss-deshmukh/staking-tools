@@ -19,7 +19,7 @@ const root = join(here, "..");
 const tpl = readFileSync(join(web, "expenses.html"), "utf8");
 const style = readFileSync(join(web, "style.css"), "utf8");
 const lib = readFileSync(join(web, "lib.js"), "utf8");
-// config.json is the build-time source of truth (converted from config.yaml).
+// config.json is the single source of truth for the simulator's data.
 const config = readFileSync(join(root, "config.json"), "utf8");
 const configMin = JSON.stringify(JSON.parse(config));
 

@@ -1,4 +1,5 @@
 {
+  "_doc": "Single source of truth for the protocol-expenses simulator; baked into the built HTML at build time (expenses/cli/build-web.ts). Conventions: DOT amounts are whole DOT (not planck); `_pct` fields are 0-100, other percentages are 0-1 floats; `id` fields must match the slider/element id in expenses/web/expenses.html; `pallet_ref`/`budget_key` are exact Rust identifiers used in tooltips. Edit this file directly — there is no YAML source.",
   "meta": {
     "title": "Polkadot staking — economic simulator",
     "subtitle": "Drag the knobs governance can actually turn. Everything else is computed.",
