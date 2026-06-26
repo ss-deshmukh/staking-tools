@@ -103,6 +103,15 @@
   tr.exactrow td:first-child { font-style: italic; }
   tr.exactrow .bar { background: var(--accent-2); }
 
+  /* Floating hover tooltip for the trend chart points. */
+  .hovertip { position: fixed; display: none; z-index: 60; pointer-events: none;
+    font-family: var(--mono); font-size: 11px; line-height: 1.45; color: var(--text);
+    background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px;
+    padding: 6px 9px; box-shadow: 0 6px 20px rgba(0,0,0,0.4); white-space: nowrap; }
+  .hovertip .ht-dot { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 6px; vertical-align: middle; }
+  .hovertip .ht-label { color: var(--muted); }
+  .hovertip .ht-val { font-size: 14px; font-weight: 600; }
+
   footer.basis { font-family: var(--mono); font-size: 11px; color: var(--faint);
     margin-top: 26px; padding-top: 14px; border-top: 1px solid var(--line); }
   footer.basis code { color: var(--muted); }

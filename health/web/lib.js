@@ -139,12 +139,14 @@
     var unb = eras.map(function (e) { return tok(e.unbonding.totalValue, c); });
     // Each series is auto-zoomed to its own range so small era-to-era movement
     // is visible; this is a multi-series trend frame, not a shared-axis chart.
-    var padL = 12, padR = 12, padT = 12, padB = 26;
+    // Exact values aren't comparable by height, so they're shown on hover only.
+    var padL = 12, padR = 12, padT = 14, padB = 26;
     var fr = { x0: padL, x1: p.w - padR, y0: p.h - padB, y1: padT };
     p.ctx.strokeStyle = cssVar("--line"); p.ctx.lineWidth = 1; p.ctx.globalAlpha = 0.5;
     p.ctx.beginPath(); p.ctx.moveTo(fr.x0, fr.y0); p.ctx.lineTo(fr.x1, fr.y0); p.ctx.stroke();
     p.ctx.globalAlpha = 1;
-    function line(arr, color) {
+    var hits = [];
+    function line(arr, color, label, fmtFn) {
       var lo = Math.min.apply(null, arr), hi = Math.max.apply(null, arr);
       var span = hi - lo || 1;
       // leave headroom so flat series sit mid-frame, not glued to an edge
@@ -161,16 +163,75 @@
       for (var i = 0; i < n; i++) { var a = pt(i); if (i === 0) p.ctx.moveTo(a[0], a[1]); else p.ctx.lineTo(a[0], a[1]); }
       p.ctx.stroke();
       p.ctx.fillStyle = color;
-      for (var j = 0; j < n; j++) { var b = pt(j); p.ctx.beginPath(); p.ctx.arc(b[0], b[1], 2.6, 0, 7); p.ctx.fill(); }
-      // end-value label
-      var last = pt(n - 1);
-      p.ctx.font = '10px ' + cssVar("--mono"); p.ctx.textAlign = "right"; p.ctx.textBaseline = "bottom";
-      p.ctx.fillText(fmtToken(arr[n - 1]), last[0] - 4, last[1] - 3);
+      for (var j = 0; j < n; j++) {
+        var b = pt(j);
+        p.ctx.beginPath(); p.ctx.arc(b[0], b[1], 2.6, 0, 7); p.ctx.fill();
+        hits.push({ x: b[0], y: b[1], color: color, label: label, era: eras[j].era, text: fmtFn(arr[j]) });
+      }
     }
-    line(noms, cssVar("--accent"));
-    line(vals, cssVar("--accent-2"));
-    line(unb, cssVar("--warn"));
+    line(noms, cssVar("--accent"), "nominators", fmtInt);
+    line(vals, cssVar("--accent-2"), "registered validators", fmtInt);
+    line(unb, cssVar("--warn"), "unbonding", function (v) { return fmtToken(v) + " " + c.tokenSymbol; });
     xLabels(p.ctx, fr, eras.map(function (e) { return e.era; }));
+    // Stash hit-points + css size on the canvas so the hover handler (bound
+    // once) can map cursor -> nearest point and show its exact value.
+    canvas._hits = hits;
+    canvas._cssW = p.w;
+    attachHover(canvas);
+  }
+
+  // Bind a single mousemove/leave handler per canvas that highlights the nearest
+  // recorded point and shows a floating tooltip with its exact value.
+  function attachHover(canvas) {
+    if (canvas._hoverBound) return;
+    canvas._hoverBound = true;
+    canvas.style.cursor = "crosshair";
+    canvas.addEventListener("mousemove", function (ev) {
+      var hits = canvas._hits;
+      if (!hits || !hits.length) return;
+      var rect = canvas.getBoundingClientRect();
+      // canvas is drawn in CSS px (we setTransform by dpr), so map by clientWidth.
+      var scale = (canvas._cssW || rect.width) / rect.width;
+      var mx = (ev.clientX - rect.left) * scale;
+      var my = (ev.clientY - rect.top) * scale;
+      var best = null, bestD = 1e9;
+      for (var i = 0; i < hits.length; i++) {
+        var dx = hits[i].x - mx, dy = hits[i].y - my, d = dx * dx + dy * dy;
+        if (d < bestD) { bestD = d; best = hits[i]; }
+      }
+      if (best && bestD <= 18 * 18) {
+        showTip(ev.clientX, ev.clientY, best);
+      } else {
+        hideTip();
+      }
+    });
+    canvas.addEventListener("mouseleave", hideTip);
+  }
+
+  function tipEl() {
+    var el = $("hoverTip");
+    if (!el) {
+      el = document.createElement("div");
+      el.id = "hoverTip";
+      el.className = "hovertip";
+      document.body.appendChild(el);
+    }
+    return el;
+  }
+  function showTip(clientX, clientY, hit) {
+    var el = tipEl();
+    el.innerHTML = '<span class="ht-dot" style="background:' + hit.color + '"></span>' +
+      '<span class="ht-label">' + hit.label + '</span> · era ' + hit.era +
+      '<br><span class="ht-val">' + hit.text + '</span>';
+    el.style.display = "block";
+    // position above-right of the cursor, clamped to viewport
+    var x = clientX + 12, y = clientY - 12;
+    el.style.left = Math.min(x, window.innerWidth - el.offsetWidth - 8) + "px";
+    el.style.top = Math.max(8, y - el.offsetHeight) + "px";
+  }
+  function hideTip() {
+    var el = $("hoverTip");
+    if (el) el.style.display = "none";
   }
 
   function drawInflation(canvas, cssH) {
@@ -328,7 +389,7 @@
     $("overlay").classList.add("open");
     meta.fn($("overlayChart"), Math.min(window.innerHeight * 0.62, 460));
   }
-  function closeZoom() { $("overlay").classList.remove("open"); }
+  function closeZoom() { $("overlay").classList.remove("open"); hideTip(); }
 
   // ---- render-all + wiring ----
   function renderCharts() {
