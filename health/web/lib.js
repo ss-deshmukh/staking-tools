@@ -104,15 +104,15 @@
   function drawElection(canvas, cssH) {
     var c = chain(), eras = c.eras;
     var p = prep(canvas, cssH || 150);
-    // Realized minimal backing of the elected set per era, vs the governance
-    // min-score threshold (a flat floor). Backings sit well above the floor and
-    // close together, so use a zoomed baseline that still shows the threshold.
+    // Per-era min stake (least-backed winner) vs the governance min-required
+    // floor. Use a ZERO baseline so bar heights and the floor line are
+    // proportional — the headline here is the ratio to the floor (~1.44×), which
+    // a zoomed baseline would distort. (Era-to-era variation is only ~4%, so it
+    // reads near-flat; that's an acceptable trade for an honest ratio.)
     var backing = eras.map(function (e) { return tok(e.activeMinBacking, c); });
     var thr = eras.map(function (e) { return e.minimumScore ? tok(e.minimumScore.minimalStake, c) : 0; });
-    var dataMin = Math.min.apply(null, backing.concat(thr));
-    var dataMax = Math.max.apply(null, backing);
-    var lo = Math.max(0, dataMin - (dataMax - dataMin) * 0.4 - 1);
-    var hi = dataMax + (dataMax - dataMin) * 0.25 + 1;
+    var lo = 0;
+    var hi = Math.max.apply(null, backing) * 1.12 || 1;
     var fr = axesRange(p.ctx, p.w, p.h, lo, hi);
     function yOf(v) { return fr.y0 - (fr.y0 - fr.y1) * ((v - lo) / (hi - lo)); }
     var n = eras.length, bw = (fr.x1 - fr.x0) / n;
@@ -284,8 +284,8 @@
     var floor = last.minimumScore ? tok(last.minimumScore.minimalStake, c) : 0;
     var marginX = floor > 0 ? (lastBack / floor) : 0;
     $("electionKpis").innerHTML =
-      kpi("min backing (elected)", fmtToken(lastBack) + ' <small>' + c.tokenSymbol + '</small>', deltaChip(lastBack, prevBack)) +
-      kpi("min-score floor", fmtToken(floor) + ' <small>' + c.tokenSymbol + '</small>') +
+      kpi("min stake — era " + last.era, fmtToken(lastBack) + ' <small>' + c.tokenSymbol + '</small>', deltaChip(lastBack, prevBack)) +
+      kpi("min required", fmtToken(floor) + ' <small>' + c.tokenSymbol + '</small>') +
       kpi("margin over floor", (marginX ? marginX.toFixed(2) + "×" : "—"));
 
     // Staking 1
@@ -337,7 +337,13 @@
     drawInflation($("inflationChart"));
     renderDist();
   }
-  function renderAll() { renderKpis(); renderCharts(); renderFooter(); }
+  function renderAll() { renderTitle(); renderKpis(); renderCharts(); renderFooter(); }
+
+  function renderTitle() {
+    var c = chain();
+    var latest = c.eras.length ? c.eras[c.eras.length - 1].era : null;
+    $("eraTag").textContent = latest != null ? "era " + latest : "";
+  }
 
   function renderFooter() {
     var c = chain();
