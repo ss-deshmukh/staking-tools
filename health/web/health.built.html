@@ -90,8 +90,11 @@
   table.dist td.bar-cell { width: 38%; }
   .bar { height: 9px; border-radius: 3px; background: var(--accent); }
   .cum { color: var(--accent-2); }
-  /* Exact round-number targets: faint, italicised sub-rows (not buckets). */
-  .exact { color: var(--faint); font-style: italic; }
+  /* Exact round-number target rows, inline among the ranges: tinted + first
+     cell in accent so the eye separates "exactly X" from "range". */
+  tr.exactrow td { color: var(--accent-2); }
+  tr.exactrow td:first-child { font-style: italic; }
+  tr.exactrow .bar { background: var(--accent-2); }
 
   footer.basis { font-family: var(--mono); font-size: 11px; color: var(--faint);
     margin-top: 26px; padding-top: 14px; border-top: 1px solid var(--line); }
@@ -385,36 +388,44 @@ const DATA = [{"chainKey":"pah","chainName":"Polkadot Asset Hub","tokenSymbol":"
   }
 
   // ---- distribution table ----
-  // Buckets high→low. Zero-count rows are hidden (except the 0-stake row, which
-  // is informative). Boundaries: lower inclusive, upper exclusive.
+  // Buckets high→low, interleaving exact round-number targets (many operators
+  // park their self-stake exactly on 10k/30k/100k) with the ranges between them.
+  // Ranges strictly exclude the round numbers, so every validator lands in
+  // exactly one row. `exact` rows match raw planck (100,002 stays in "> 100k").
+  // `always` rows show even at count 0 (their presence/absence is the signal).
   var BUCKETS = [
-    { label: "> 100k", test: function (t) { return t >= 100000; }, hideIfZero: true },
-    { label: "30k – 100k", test: function (t) { return t >= 30000 && t < 100000; }, hideIfZero: true },
-    { label: "10k – 30k", test: function (t) { return t >= 10000 && t < 30000; } },
-    { label: "5k – 10k", test: function (t) { return t >= 5000 && t < 10000; } },
-    { label: "0 – 5k", test: function (t) { return t > 0 && t < 5000; } },
-    { label: "0", test: function (t) { return t === 0; } }
+    { label: "> 100k", lo: 100000, exLo: true, hideIfZero: true },
+    { label: "= 100k", exact: 100000, always: true },
+    { label: "30k – 100k", lo: 30000, hi: 100000, exLo: true, exHi: true, hideIfZero: true },
+    { label: "= 30k", exact: 30000, always: true },
+    { label: "10k – 30k", lo: 10000, hi: 30000, exLo: true, exHi: true },
+    { label: "= 10k", exact: 10000, always: true },
+    { label: "5k – 10k", lo: 5000, hi: 10000, exHi: true },
+    { label: "0 – 5k", lo: 0, hi: 5000, exLo: true, exHi: true },
+    { label: "0", exact: 0 }
   ];
 
   function renderDist() {
     var c = chain();
     var latest = c.eras[c.eras.length - 1];
     var stakes = state.distSet === "active" ? latest.activeValidatorOwnStakes : latest.allValidatorOwnStakes;
-    var toks = stakes.map(function (s) { return Math.floor(tok(s, c)); });
-    var total = toks.length;
-    var counts = BUCKETS.map(function (b) { return toks.filter(b.test).length; });
-    var maxCount = Math.max.apply(null, counts) || 1;
-    var ge10k = toks.filter(function (t) { return t >= 10000; }).length;
-    var maxStake = total ? Math.max.apply(null, toks) : 0;
-    // Pile-ups at round self-stake targets (exact planck match).
     var unit = Math.pow(10, c.tokenDecimals);
-    function exactlyN(k) {
-      var target = k * unit;
-      return stakes.filter(function (s) { return Number(s) === target; }).length;
+    // Classify each validator once, by raw planck, into the first matching row.
+    var planck = stakes.map(function (s) { return Number(s); });
+    var total = planck.length;
+    function matches(b, p) {
+      if (b.exact != null) return p === b.exact * unit;
+      var t = p / unit;
+      if (b.lo != null && (b.exLo ? t <= b.lo : t < b.lo)) return false;
+      if (b.hi != null && (b.exHi ? t >= b.hi : t > b.hi)) return false;
+      return true;
     }
-    var exactTargets = [10000, 30000, 100000].map(function (k) {
-      return { k: k, n: exactlyN(k) };
-    }).filter(function (e) { return e.n > 0; });
+    var counts = BUCKETS.map(function (b) {
+      return planck.filter(function (p) { return matches(b, p); }).length;
+    });
+    var maxCount = Math.max.apply(null, counts) || 1;
+    var ge10k = planck.filter(function (p) { return p / unit >= 10000; }).length;
+    var maxStake = total ? Math.max.apply(null, planck) / unit : 0;
 
     var scope = state.distSet === "active" ? "active set, era " + latest.era : "all registered";
     $("distHint").textContent = scope + " · " + fmtInt(total) + " validators · max " + fmtToken(maxStake) + " " + c.tokenSymbol;
@@ -430,23 +441,17 @@ const DATA = [{"chainKey":"pah","chainName":"Polkadot Asset Hub","tokenSymbol":"
 
     var rows = '<tr><th>self-stake</th><th>count</th><th></th><th>%</th></tr>';
     for (var i = 0; i < BUCKETS.length; i++) {
-      if (BUCKETS[i].hideIfZero && counts[i] === 0) continue;
+      var b = BUCKETS[i];
+      if (b.hideIfZero && counts[i] === 0) continue;
       var pct = total ? (counts[i] / total) * 100 : 0;
       var bw = (counts[i] / maxCount) * 100;
-      rows += '<tr><td>' + BUCKETS[i].label + '</td><td style="text-align:right">' + fmtInt(counts[i]) +
+      var cls = b.exact != null && b.exact > 0 ? " class=\"exactrow\"" : "";
+      rows += '<tr' + cls + '><td>' + b.label + '</td><td style="text-align:right">' + fmtInt(counts[i]) +
         '</td><td class="bar-cell"><div class="bar" style="width:' + bw.toFixed(1) + '%"></div></td>' +
         '<td style="text-align:right">' + pct.toFixed(1) + '%</td></tr>';
     }
     rows += '<tr><td class="cum">≥ 10k (cum)</td><td class="cum" style="text-align:right">' + fmtInt(ge10k) +
       '</td><td></td><td class="cum" style="text-align:right">' + (total ? (ge10k / total * 100).toFixed(1) : "0") + '%</td></tr>';
-    // Exact round-number targets (subset of the buckets above; many operators
-    // park their self-stake on these levels).
-    for (var e = 0; e < exactTargets.length; e++) {
-      var et = exactTargets[e];
-      var epct = total ? (et.n / total) * 100 : 0;
-      rows += '<tr><td class="exact">= ' + fmtToken(et.k) + '</td><td class="exact" style="text-align:right">' + fmtInt(et.n) +
-        '</td><td></td><td class="exact" style="text-align:right">' + epct.toFixed(1) + '%</td></tr>';
-    }
     $("distTable").innerHTML = rows;
   }
 

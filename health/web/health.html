@@ -90,8 +90,11 @@
   table.dist td.bar-cell { width: 38%; }
   .bar { height: 9px; border-radius: 3px; background: var(--accent); }
   .cum { color: var(--accent-2); }
-  /* Exact round-number targets: faint, italicised sub-rows (not buckets). */
-  .exact { color: var(--faint); font-style: italic; }
+  /* Exact round-number target rows, inline among the ranges: tinted + first
+     cell in accent so the eye separates "exactly X" from "range". */
+  tr.exactrow td { color: var(--accent-2); }
+  tr.exactrow td:first-child { font-style: italic; }
+  tr.exactrow .bar { background: var(--accent-2); }
 
   footer.basis { font-family: var(--mono); font-size: 11px; color: var(--faint);
     margin-top: 26px; padding-top: 14px; border-top: 1px solid var(--line); }
@@ -110,7 +113,7 @@
 
 <div class="wrap">
   <header class="masthead">
-    <div class="brand"><span class="dot"></span><h1>Era Health</h1></div>
+    <div class="brand"><span class="dot"></span><h1>Era Health</h1><span class="era-tag" id="eraTag"></span></div>
     <div class="controls">
       <button class="theme-toggle" id="themeToggle" title="Toggle theme" aria-label="Toggle light/dark">◐</button>
     </div>
