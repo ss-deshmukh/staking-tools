@@ -21,6 +21,7 @@
  * RPC_WAH at an archive node if reconstructing eras older than the public
  * node's state retention (~8 days on the public PAH RPC).
  */
+import "../../shared/util/env.js";
 import { getChain } from "../../shared/chains/index.js";
 import { connect, readChainState } from "../../shared/snapshot/reader.js";
 import { readEra, writeEra, listEras } from "../../shared/snapshot/store.js";

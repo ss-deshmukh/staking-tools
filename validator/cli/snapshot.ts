@@ -14,6 +14,7 @@
  *
  * Env overrides: RPC_WAH / RPC_PAH to point at a custom node.
  */
+import "../../shared/util/env.js";
 import { getChain } from "../../shared/chains/index.js";
 import {
   connect,
