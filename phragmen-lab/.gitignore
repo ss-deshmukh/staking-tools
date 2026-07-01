@@ -1,0 +1,10 @@
+# Node / TypeScript
+node_modules/
+build/
+
+# Rust
+/rust/target/
+/rust/Cargo.lock
+
+# Dumped snapshots (large; produce with `yarn dump`)
+snapshot*.json
