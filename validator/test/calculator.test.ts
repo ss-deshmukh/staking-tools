@@ -56,22 +56,29 @@ for (const chain of CHAINS) {
     : `no ${chain} snapshot data; run \`pnpm snapshot --chain ${chain}\` first`;
 
   // --- GOLDEN: incentive weight reproduces on-chain ErasValidatorIncentiveWeight ---
-  // When the incentive feature is disabled on a chain (optimum=cap=0, budget=0,
-  // weights all null — currently the case on Polkadot Asset Hub), we instead
-  // assert the calculator agrees that all weights are zero.
+  // The feature may carry no weights for an era because it's fully disabled
+  // (optimum=cap=0) OR because it was just configured and hasn't produced any
+  // weights yet (params set, but no era budget → sum is 0, weights all null —
+  // currently the case on Polkadot Asset Hub as of era 2218). Key off the
+  // chain's own ground truth — does any validator carry a weight? — rather than
+  // whether the curve params happen to be set.
   test(`[${chain}] incentive weight matches on-chain (or feature is off)`, { skip }, () => {
     const s = snapshot!;
     const optimum = BigInt(s.incentiveParams.optimumSelfStake);
     const cap = BigInt(s.incentiveParams.hardCapSelfStake);
     const slope = BigInt(s.incentiveParams.selfStakeSlopeFactor.raw);
-    const incentiveDisabled = optimum === 0n && cap === 0n;
+    const hasWeights = s.validators.some((v) => v.incentiveWeight != null);
 
-    if (incentiveDisabled) {
-      assert.equal(s.sumIncentiveWeight, "0", "expected zero sum when off");
-      // Calculator must also yield zero weight for any self-stake.
-      for (const v of s.validators.slice(0, 5)) {
-        assert.equal(incentiveWeight(BigInt(v.ownStake), optimum, cap, slope), 0n);
+    if (!hasWeights) {
+      assert.equal(s.sumIncentiveWeight, "0", "expected zero sum when no weights present");
+      for (const v of s.validators) {
         assert.equal(v.incentiveWeight, null, `expected null weight for ${v.address}`);
+      }
+      // When the curve itself is disabled, the calculator must also yield zero.
+      if (optimum === 0n && cap === 0n) {
+        for (const v of s.validators.slice(0, 5)) {
+          assert.equal(incentiveWeight(BigInt(v.ownStake), optimum, cap, slope), 0n);
+        }
       }
       return;
     }
