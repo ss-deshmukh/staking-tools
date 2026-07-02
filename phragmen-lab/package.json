@@ -1,0 +1,28 @@
+{
+	"name": "phragmen-lab",
+	"version": "0.1.0",
+	"description": "Dump a Polkadot multi-block election (EPMB) snapshot and replay it offline through the real sp-npos-elections solver to ask what-if questions about the score gate.",
+	"scripts": {
+		"dump": "./node_modules/.bin/ts-node ts/dump-snapshot.ts",
+		"lint": "eslint . --ext .ts --fix",
+		"format": "prettier --write './**/*.{ts,md,json}' --config ./.prettierrc"
+	},
+	"author": "@ank4n",
+	"license": "ISC",
+	"dependencies": {
+		"@polkadot/api": "15.5.2",
+		"yargs": "^17.6.2"
+	},
+	"devDependencies": {
+		"@types/node": "^18.11.18",
+		"@types/yargs": "^17.0.22",
+		"@typescript-eslint/eslint-plugin": "^5.50.0",
+		"@typescript-eslint/parser": "^5.50.0",
+		"eslint": "^8.33.0",
+		"eslint-config-prettier": "^8.6.0",
+		"eslint-plugin-prettier": "^4.2.1",
+		"prettier": "^2.8.3",
+		"ts-node": "^10.9.1",
+		"typescript": "4.9.5"
+	}
+}
