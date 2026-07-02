@@ -54,6 +54,24 @@ const APPS: App[] = [
     },
   },
   {
+    slug: "kusama",
+    title: "Kusama Validator APY",
+    blurb: "Model a Kusama validator's APY — self-stake, backing & commission split the per-validator reward.",
+    icon: "🐦",
+    build: () => {
+      // Self-contained: inline kusama/config.json into the template. No snapshot
+      // (Kusama runs classic NPoS, not staking-async), no network.
+      execFileSync("pnpm", ["exec", "tsx", "kusama/cli/build-web.ts"], {
+        cwd: ROOT,
+        stdio: "inherit",
+      });
+      return readFileSync(
+        join(ROOT, "kusama", "web", "simulator.built.html"),
+        "utf8",
+      );
+    },
+  },
+  {
     slug: "expenses",
     title: "Protocol Expenses",
     blurb: "Drag the DAP budget split, see protocol costs / APYs / flow update live.",

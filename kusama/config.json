@@ -1,0 +1,27 @@
+{
+  "_doc": "Single source of truth for the Kusama validator APY calculator; baked into the built HTML at build time (kusama/cli/build-web.ts). Unlike the Polkadot validator app (data-driven from on-chain staking-async snapshots), Kusama runs classic NPoS, so this is a self-contained model with editable defaults — no network fetch. All amounts are whole KSM; percentage fields are 0-100. Verify against live per-era payouts (Subscan / staking dashboard) before trusting any number.",
+  "tokenSymbol": "KSM",
+  "tokenDecimals": 12,
+  "erasPerYear": 1460,
+  "eraLabel": "6 h era · 4 / day",
+  "network": {
+    "totalSupply": 18300000,
+    "stakingRate": 15,
+    "idealStake": 50,
+    "maxInflation": 10,
+    "minInflation": 2.5,
+    "falloff": 5,
+    "validators": 1000
+  },
+  "defaults": {
+    "selfStake": 2000,
+    "nominatorBacking": 8000,
+    "commission": 10,
+    "performance": 100
+  },
+  "limits": {
+    "selfMax": 20000,
+    "nomMax": 50000
+  },
+  "note": "Modeled Kusama NPoS economics: each active validator earns ~the same reward per era (by era points), split commission-first then pro-rata by stake. Backing secures your slot; it does not raise the per-validator reward. Inputs are editable — verify against live per-era payouts before trusting."
+}

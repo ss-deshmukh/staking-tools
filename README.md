@@ -17,6 +17,7 @@ snapshots/     on-chain era data, one JSON file per era (shared)
 | `shared/snapshot/` | RPC reader, per-era JSON store, schema types |
 | `shared/apy/` | Pure BigInt APY calculator (mirrors the pallet math) |
 | `validator/` | The validator app — see `validator/README.md` |
+| `kusama/` | Kusama validator APY calculator (self-contained model — classic NPoS, no snapshot) |
 | `snapshots/<chain>/<era>.json` | One file per era + `index.json` |
 
 New tools go beside `validator/` and import from `shared/`.
@@ -33,6 +34,7 @@ pnpm install
 pnpm snapshot --chain pah        # snapshot last 28 ended eras to JSON
 pnpm apy --chain pah --top 10    # validator APY from a snapshot (CLI)
 pnpm build-web                   # rebuild the validator app HTML
+pnpm build-kusama                # rebuild the Kusama APY calculator HTML
 pnpm build-site                  # build the full static site -> site/
 pnpm test                        # golden tests vs on-chain values
 pnpm typecheck
